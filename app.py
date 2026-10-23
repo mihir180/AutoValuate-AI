@@ -32,26 +32,30 @@ CUSTOM_CSS = """
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Background glow effect */
+    /* Solid luxury dark background */
     .stApp {
-        background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, rgba(15, 23, 42, 0) 50%),
-                    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.08) 0%, rgba(15, 23, 42, 0) 50%);
+        background-color: #0b0f19 !important;
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(11, 15, 25, 0) 50%),
+            radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.12) 0%, rgba(11, 15, 25, 0) 50%) !important;
+        color: #f8fafc !important;
     }
 
-    /* Glassmorphic Cards */
+    /* Solid High-Contrast Glassmorphic Cards (eliminates washed-out off-white look) */
     .metric-card {
-        background: rgba(30, 41, 59, 0.65);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(99, 102, 241, 0.35) !important;
         border-radius: 16px;
         padding: 22px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-        transition: transform 0.25s ease, border-color 0.25s ease;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
     .metric-card:hover {
         transform: translateY(-3px);
-        border-color: rgba(99, 102, 241, 0.4);
+        border-color: rgba(99, 102, 241, 0.65) !important;
+        box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.25);
     }
 
     /* Clarification Callout */
@@ -225,6 +229,38 @@ CUSTOM_CSS = """
         color: #818cf8 !important;
         border: 1px solid rgba(99, 102, 241, 0.3) !important;
     }
+
+    /* Calculate Market Valuation Action Button */
+    div[data-testid="stButton"] > button, .stButton > button {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(165, 180, 252, 0.35) !important;
+        border-radius: 12px !important;
+        padding: 0.75rem 1.5rem !important;
+        font-weight: 700 !important;
+        font-size: 1.05rem !important;
+        letter-spacing: 0.3px !important;
+        box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.5) !important;
+        transition: all 0.25s ease !important;
+    }
+    div[data-testid="stButton"] > button:hover, .stButton > button:hover {
+        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
+        box-shadow: 0 6px 25px 0 rgba(99, 102, 241, 0.75) !important;
+        transform: translateY(-2px) !important;
+        color: #ffffff !important;
+    }
+    div[data-testid="stButton"] > button:active, .stButton > button:active {
+        transform: translateY(0px) !important;
+    }
+
+    /* Alert Boxes (ARAI and status notifications) */
+    [data-testid="stAlert"] {
+        background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+        border: 1px solid rgba(99, 102, 241, 0.4) !important;
+        border-left: 5px solid #38bdf8 !important;
+        border-radius: 12px !important;
+        color: #e2e8f0 !important;
+    }
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -374,7 +410,15 @@ with tab_val:
 
         # Display estimated fuel efficiency for the selected model
         model_fuel_efficiency = estimate_fuel_economy_kmpl(selected_model, selected_company, selected_fuel)
-        st.info(f"⛽ **Certified ARAI Fuel Mileage for this model:** **{model_fuel_efficiency} km/L**")
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(99, 102, 241, 0.35); border-left: 4px solid #38bdf8; border-radius: 12px; padding: 12px 18px; margin: 14px 0; color: #e2e8f0; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <span style="font-size: 1.15rem; margin-right: 6px;">⛽</span>
+                <span style="color: #cbd5e1; font-weight: 500;">Certified ARAI Fuel Mileage:</span>
+            </div>
+            <strong style="color: #38bdf8; font-size: 1.15rem; background: rgba(56, 189, 248, 0.12); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.25);">{model_fuel_efficiency} km/L</strong>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.write("5. Total Odometer Reading (Cumulative Kilometers Run)")
         st.caption("How many total kilometers has this used car driven over its lifetime?")
@@ -450,11 +494,11 @@ with tab_val:
             with col_m1:
                 st.markdown(f"""
                 <div class="metric-card">
-                    <div style="color: #94a3b8; font-size: 0.85rem;">ARAI Fuel Mileage</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #10b981; margin-top: 4px;">
+                    <div style="color: #cbd5e1; font-size: 0.88rem; font-weight: 600;">ARAI Fuel Mileage</div>
+                    <div style="font-size: 1.45rem; font-weight: 800; color: #10b981; margin-top: 6px;">
                         {curr_data['kmpl']} km/L
                     </div>
-                    <div style="color: #64748b; font-size: 0.78rem; margin-top: 4px;">Certified fuel efficiency</div>
+                    <div style="color: #94a3b8; font-size: 0.82rem; margin-top: 6px;">Certified fuel efficiency</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -462,11 +506,11 @@ with tab_val:
                 retention = max(20, min(95, 100 - (current_year - curr_data['year']) * 7))
                 st.markdown(f"""
                 <div class="metric-card">
-                    <div style="color: #94a3b8; font-size: 0.85rem;">Est. Value Retention</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #38bdf8; margin-top: 4px;">
+                    <div style="color: #cbd5e1; font-size: 0.88rem; font-weight: 600;">Est. Value Retention</div>
+                    <div style="font-size: 1.45rem; font-weight: 800; color: #38bdf8; margin-top: 6px;">
                         {retention}% of Original
                     </div>
-                    <div style="color: #64748b; font-size: 0.78rem; margin-top: 4px;">Relative to initial invoice</div>
+                    <div style="color: #94a3b8; font-size: 0.82rem; margin-top: 6px;">Relative to initial invoice</div>
                 </div>
                 """, unsafe_allow_html=True)
 
