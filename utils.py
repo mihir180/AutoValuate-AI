@@ -102,7 +102,7 @@ def predict_price(model, company, name, year, kms_driven, fuel_type):
     predicted_val = max(25000, predicted_val)
     return predicted_val
 
-def create_brand_price_chart(df):
+def create_brand_price_chart(df, template="plotly_dark"):
     """Bar chart for average car price by brand"""
     avg_price = df.groupby("company")["Price"].mean().reset_index()
     avg_price = avg_price.sort_values(by="Price", ascending=False)
@@ -115,7 +115,7 @@ def create_brand_price_chart(df):
         labels={"company": "Brand", "Price": "Average Price (₹)"},
         color="Price",
         color_continuous_scale="Purples",
-        template="plotly_dark"
+        template=template
     )
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
@@ -127,7 +127,7 @@ def create_brand_price_chart(df):
     )
     return fig
 
-def create_depreciation_chart(df):
+def create_depreciation_chart(df, template="plotly_dark"):
     """Line/Scatter chart showing price depreciation over manufacturing years"""
     yearly_stats = df.groupby("year")["Price"].agg(["mean", "median"]).reset_index()
     
@@ -153,7 +153,7 @@ def create_depreciation_chart(df):
         title="Market Depreciation Curve Across Model Years",
         xaxis_title="Manufacturing Year",
         yaxis_title="Price (₹)",
-        template="plotly_dark",
+        template=template,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=20, r=20, t=50, b=20),
@@ -162,7 +162,7 @@ def create_depreciation_chart(df):
     )
     return fig
 
-def create_kms_vs_price_chart(df):
+def create_kms_vs_price_chart(df, template="plotly_dark"):
     """Scatter plot: Price vs Kilometers Driven on Odometer"""
     fig = px.scatter(
         df,
@@ -173,7 +173,7 @@ def create_kms_vs_price_chart(df):
         title="Odometer Distance (Total Run) vs Selling Price",
         labels={"kms_driven": "Total Kilometers Driven (Odometer)", "Price": "Price (₹)", "fuel_type": "Fuel Type"},
         hover_data=["name", "year", "fuel_efficiency_kmpl"],
-        template="plotly_dark"
+        template=template
     )
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
@@ -183,7 +183,7 @@ def create_kms_vs_price_chart(df):
     )
     return fig
 
-def create_fuel_distribution_chart(df):
+def create_fuel_distribution_chart(df, template="plotly_dark"):
     """Donut chart for fuel type distribution"""
     fuel_counts = df["fuel_type"].value_counts().reset_index()
     fuel_counts.columns = ["fuel_type", "count"]
@@ -196,7 +196,7 @@ def create_fuel_distribution_chart(df):
         title="Inventory Breakdown by Fuel Type",
         color="fuel_type",
         color_discrete_map={"Petrol": "#f59e0b", "Diesel": "#3b82f6", "LPG": "#10b981"},
-        template="plotly_dark"
+        template=template
     )
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
@@ -205,3 +205,4 @@ def create_fuel_distribution_chart(df):
         font=dict(family="sans-serif", size=12)
     )
     return fig
+

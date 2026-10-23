@@ -23,247 +23,352 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-End Styling (Glassmorphism, Gradient Badges, Polished Cards)
-CUSTOM_CSS = """
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    /* Solid luxury dark background */
-    .stApp {
-        background-color: #0b0f19 !important;
-        background-image: 
-            radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(11, 15, 25, 0) 50%),
-            radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.12) 0%, rgba(11, 15, 25, 0) 50%) !important;
-        color: #f8fafc !important;
-    }
-
-    /* Solid High-Contrast Glassmorphic Cards (eliminates washed-out off-white look) */
-    .metric-card {
-        background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(99, 102, 241, 0.35) !important;
-        border-radius: 16px;
-        padding: 22px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
-        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-    }
-    .metric-card:hover {
-        transform: translateY(-3px);
-        border-color: rgba(99, 102, 241, 0.65) !important;
-        box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.25);
-    }
-
-    /* Clarification Callout */
-    .clarification-box {
-        background: rgba(30, 41, 59, 0.8);
-        border-left: 4px solid #38bdf8;
-        border-radius: 10px;
-        padding: 14px 18px;
-        margin: 15px 0;
-        font-size: 0.92rem;
-        color: #cbd5e1;
-    }
-
-    /* Hero Banner */
-    .hero-container {
-        background: linear-gradient(135deg, rgba(30, 27, 75, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        border-radius: 20px;
-        padding: 30px;
-        margin-bottom: 25px;
-        position: relative;
-        overflow: hidden;
-    }
-    .hero-badge {
-        display: inline-block;
-        padding: 6px 14px;
-        background: rgba(99, 102, 241, 0.2);
-        border: 1px solid rgba(99, 102, 241, 0.4);
-        border-radius: 9999px;
-        color: #a5b4fc;
-        font-size: 0.82rem;
-        font-weight: 600;
-        margin-bottom: 12px;
-        letter-spacing: 0.5px;
-    }
-    .hero-title {
-        font-size: 2.2rem;
-        font-weight: 800;
-        margin: 0;
-        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .hero-desc {
-        color: #94a3b8;
-        font-size: 1.02rem;
-        margin-top: 8px;
-        max-width: 760px;
-        line-height: 1.5;
-    }
-
-    /* Prediction Result Showcase */
-    .prediction-box {
-        background: linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%);
-        border: 2px solid rgba(99, 102, 241, 0.45);
-        border-radius: 20px;
-        padding: 28px;
-        text-align: center;
-        box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.25);
-        margin-top: 15px;
-    }
-    .prediction-badge {
-        color: #10b981;
-        background: rgba(16, 185, 129, 0.12);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    .prediction-val {
-        font-size: 3.2rem;
-        font-weight: 800;
-        color: #38bdf8;
-        margin: 12px 0;
-        text-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
-    }
-    .price-range {
-        color: #94a3b8;
-        font-size: 0.95rem;
-        font-weight: 500;
-    }
-
-    /* Sub-card styling */
-    .feature-card {
-        background: rgba(15, 23, 42, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 12px;
-        padding: 16px;
-        margin-top: 10px;
-    }
-
-    /* Anti-truncation for all metrics and numbers */
-    [data-testid="stMetricValue"], [data-testid="stMetricValue"] > div {
-        font-size: clamp(1.1rem, 1.8vw, 1.45rem) !important;
-        white-space: normal !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-        word-break: normal !important;
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 0.85rem !important;
-        white-space: normal !important;
-        overflow: visible !important;
-    }
-
-    /* Spacious EMI Container & Grid */
-    .emi-card-wrapper {
-        background: rgba(30, 41, 59, 0.7);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(99, 102, 241, 0.25);
-        border-radius: 18px;
-        padding: 24px;
-        margin-top: 25px;
-    }
-    .emi-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin-top: 18px;
-    }
-    .emi-stat-card {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        padding: 18px 20px;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .emi-stat-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(99, 102, 241, 0.4);
-    }
-    .emi-stat-label {
-        color: #94a3b8;
-        font-size: 0.82rem;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-    }
-    .emi-stat-val {
-        font-size: 1.65rem;
-        font-weight: 800;
-        white-space: normal;
-        word-break: keep-all;
-        line-height: 1.25;
-    }
-    .emi-stat-sub {
-        color: #64748b;
-        font-size: 0.8rem;
-        margin-top: 6px;
-    }
-
-    /* Tabs active accent */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        padding-bottom: 6px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 8px 16px;
-        font-weight: 600;
-        color: #94a3b8;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: rgba(99, 102, 241, 0.15) !important;
-        color: #818cf8 !important;
-        border: 1px solid rgba(99, 102, 241, 0.3) !important;
-    }
-
-    /* Calculate Market Valuation Action Button */
-    div[data-testid="stButton"] > button, .stButton > button {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(165, 180, 252, 0.35) !important;
-        border-radius: 12px !important;
-        padding: 0.75rem 1.5rem !important;
-        font-weight: 700 !important;
-        font-size: 1.05rem !important;
-        letter-spacing: 0.3px !important;
-        box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.5) !important;
-        transition: all 0.25s ease !important;
-    }
-    div[data-testid="stButton"] > button:hover, .stButton > button:hover {
-        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
-        box-shadow: 0 6px 25px 0 rgba(99, 102, 241, 0.75) !important;
-        transform: translateY(-2px) !important;
-        color: #ffffff !important;
-    }
-    div[data-testid="stButton"] > button:active, .stButton > button:active {
-        transform: translateY(0px) !important;
-    }
-
-    /* Alert Boxes (ARAI and status notifications) */
-    [data-testid="stAlert"] {
-        background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
-        border: 1px solid rgba(99, 102, 241, 0.4) !important;
-        border-left: 5px solid #38bdf8 !important;
-        border-radius: 12px !important;
-        color: #e2e8f0 !important;
-    }
-</style>
-"""
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+def get_custom_css(is_dark):
+    if is_dark:
+        return """
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+            html, body, [class*="css"] {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+            }
+            .stApp {
+                background-color: #0b0f19 !important;
+                background-image: 
+                    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(11, 15, 25, 0) 50%),
+                    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.12) 0%, rgba(11, 15, 25, 0) 50%) !important;
+                color: #f8fafc !important;
+            }
+            .metric-card {
+                background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
+                backdrop-filter: blur(16px);
+                border: 1px solid rgba(99, 102, 241, 0.35) !important;
+                border-radius: 16px;
+                padding: 22px;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
+                transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            }
+            .metric-card:hover {
+                transform: translateY(-3px);
+                border-color: rgba(99, 102, 241, 0.65) !important;
+                box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.25);
+            }
+            .clarification-box {
+                background: rgba(30, 41, 59, 0.8);
+                border-left: 4px solid #38bdf8;
+                border-radius: 10px;
+                padding: 14px 18px;
+                margin: 15px 0;
+                font-size: 0.92rem;
+                color: #cbd5e1;
+            }
+            .hero-container {
+                background: linear-gradient(135deg, rgba(30, 27, 75, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
+                border: 1px solid rgba(99, 102, 241, 0.3);
+                border-radius: 20px;
+                padding: 30px;
+                margin-bottom: 25px;
+            }
+            .hero-badge {
+                display: inline-block;
+                padding: 6px 14px;
+                background: rgba(99, 102, 241, 0.2);
+                border: 1px solid rgba(99, 102, 241, 0.4);
+                border-radius: 9999px;
+                color: #a5b4fc;
+                font-size: 0.82rem;
+                font-weight: 600;
+                margin-bottom: 12px;
+            }
+            .hero-title {
+                font-size: 2.2rem;
+                font-weight: 800;
+                margin: 0;
+                background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .hero-desc {
+                color: #94a3b8;
+                font-size: 1.02rem;
+                margin-top: 8px;
+                line-height: 1.5;
+            }
+            .prediction-box {
+                background: linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%);
+                border: 2px solid rgba(99, 102, 241, 0.45);
+                border-radius: 20px;
+                padding: 28px;
+                text-align: center;
+                box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.25);
+                margin-top: 15px;
+            }
+            .prediction-badge {
+                color: #10b981;
+                background: rgba(16, 185, 129, 0.12);
+                border: 1px solid rgba(16, 185, 129, 0.3);
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                font-weight: 600;
+            }
+            .prediction-val {
+                font-size: 3.2rem;
+                font-weight: 800;
+                color: #38bdf8;
+                margin: 12px 0;
+                text-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+            }
+            .price-range {
+                color: #94a3b8;
+                font-size: 0.95rem;
+                font-weight: 500;
+            }
+            .feature-card {
+                background: rgba(15, 23, 42, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                padding: 16px;
+                margin-top: 10px;
+            }
+            .emi-card-wrapper {
+                background: rgba(30, 41, 59, 0.7);
+                border: 1px solid rgba(99, 102, 241, 0.25);
+                border-radius: 18px;
+                padding: 24px;
+                margin-top: 25px;
+            }
+            .emi-stat-card {
+                background: rgba(15, 23, 42, 0.85);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 14px;
+                padding: 18px 20px;
+                text-align: center;
+            }
+            .emi-stat-label {
+                color: #94a3b8;
+                font-size: 0.82rem;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+            .emi-stat-val {
+                font-size: 1.65rem;
+                font-weight: 800;
+                color: #ffffff;
+            }
+            .emi-stat-sub {
+                color: #64748b;
+                font-size: 0.8rem;
+                margin-top: 6px;
+            }
+            div[data-testid="stButton"] > button, .stButton > button {
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+                color: #ffffff !important;
+                border: 1px solid rgba(165, 180, 252, 0.35) !important;
+                border-radius: 12px !important;
+                padding: 0.75rem 1.5rem !important;
+                font-weight: 700 !important;
+                font-size: 1.05rem !important;
+                box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.5) !important;
+                transition: all 0.25s ease !important;
+            }
+            div[data-testid="stButton"] > button:hover, .stButton > button:hover {
+                background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
+                box-shadow: 0 6px 25px 0 rgba(99, 102, 241, 0.75) !important;
+                transform: translateY(-2px) !important;
+                color: #ffffff !important;
+            }
+            [data-testid="stAlert"] {
+                background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+                border: 1px solid rgba(99, 102, 241, 0.4) !important;
+                border-left: 5px solid #38bdf8 !important;
+                border-radius: 12px !important;
+                color: #e2e8f0 !important;
+            }
+        </style>
+        """
+    else:
+        # LIGHT MODE (Crisp, High-End SaaS Aesthetic)
+        return """
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+            html, body, [class*="css"] {
+                font-family: 'Plus Jakarta Sans', sans-serif;
+            }
+            .stApp {
+                background-color: #f8fafc !important;
+                background-image: 
+                    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.06) 0%, rgba(248, 250, 252, 0) 50%),
+                    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.05) 0%, rgba(248, 250, 252, 0) 50%) !important;
+                color: #0f172a !important;
+            }
+            /* Crisp White Metric Cards */
+            .metric-card {
+                background: #ffffff !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 16px;
+                padding: 22px;
+                box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04) !important;
+                transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            }
+            .metric-card:hover {
+                transform: translateY(-3px);
+                border-color: #6366f1 !important;
+                box-shadow: 0 10px 25px -3px rgba(99, 102, 241, 0.15) !important;
+            }
+            .clarification-box {
+                background: #f1f5f9 !important;
+                border-left: 4px solid #0284c7 !important;
+                border-radius: 10px;
+                padding: 14px 18px;
+                margin: 15px 0;
+                font-size: 0.92rem;
+                color: #334155 !important;
+            }
+            .hero-container {
+                background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 20px;
+                padding: 30px;
+                margin-bottom: 25px;
+                box-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.06) !important;
+            }
+            .hero-badge {
+                display: inline-block;
+                padding: 6px 14px;
+                background: rgba(99, 102, 241, 0.08) !important;
+                border: 1px solid rgba(99, 102, 241, 0.25) !important;
+                border-radius: 9999px;
+                color: #4f46e5 !important;
+                font-size: 0.82rem;
+                font-weight: 600;
+                margin-bottom: 12px;
+            }
+            .hero-title {
+                font-size: 2.2rem;
+                font-weight: 800;
+                margin: 0;
+                background: linear-gradient(135deg, #0f172a 0%, #334155 50%, #4f46e5 100%) !important;
+                -webkit-background-clip: text !important;
+                -webkit-text-fill-color: transparent !important;
+            }
+            .hero-desc {
+                color: #475569 !important;
+                font-size: 1.02rem;
+                margin-top: 8px;
+                line-height: 1.5;
+            }
+            .prediction-box {
+                background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #1e293b 100%) !important;
+                border: 2px solid rgba(99, 102, 241, 0.45) !important;
+                border-radius: 20px;
+                padding: 28px;
+                text-align: center;
+                box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.25);
+                margin-top: 15px;
+            }
+            .prediction-badge {
+                color: #10b981;
+                background: rgba(16, 185, 129, 0.15);
+                border: 1px solid rgba(16, 185, 129, 0.3);
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                font-weight: 600;
+            }
+            .prediction-val {
+                font-size: 3.2rem;
+                font-weight: 800;
+                color: #38bdf8;
+                margin: 12px 0;
+                text-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+            }
+            .price-range {
+                color: #cbd5e1;
+                font-size: 0.95rem;
+                font-weight: 500;
+            }
+            .feature-card {
+                background: #ffffff !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 12px;
+                padding: 16px;
+                margin-top: 10px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            }
+            .emi-card-wrapper {
+                background: #ffffff !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 18px;
+                padding: 24px;
+                margin-top: 25px;
+                box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+            }
+            .emi-stat-card {
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 14px;
+                padding: 18px 20px;
+                text-align: center;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            }
+            .emi-stat-label {
+                color: #64748b !important;
+                font-size: 0.82rem;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+            .emi-stat-val {
+                color: #0f172a !important;
+                font-size: 1.65rem;
+                font-weight: 800;
+            }
+            .emi-stat-sub {
+                color: #64748b !important;
+                font-size: 0.8rem;
+                margin-top: 6px;
+            }
+            div[data-testid="stButton"] > button, .stButton > button {
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+                color: #ffffff !important;
+                border: none !important;
+                border-radius: 12px !important;
+                padding: 0.75rem 1.5rem !important;
+                font-weight: 700 !important;
+                font-size: 1.05rem !important;
+                box-shadow: 0 4px 15px -2px rgba(99, 102, 241, 0.4) !important;
+                transition: all 0.25s ease !important;
+            }
+            div[data-testid="stButton"] > button:hover, .stButton > button:hover {
+                background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
+                box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.6) !important;
+                transform: translateY(-2px) !important;
+                color: #ffffff !important;
+            }
+            [data-testid="stAlert"] {
+                background: #eff6ff !important;
+                border: 1px solid #bfdbfe !important;
+                border-left: 5px solid #3b82f6 !important;
+                border-radius: 12px !important;
+                color: #1e3a8a !important;
+            }
+            .stTabs [data-baseweb="tab-list"] {
+                gap: 8px;
+                border-bottom: 1px solid #e2e8f0;
+                padding-bottom: 6px;
+            }
+            .stTabs [data-baseweb="tab"] {
+                border-radius: 10px;
+                padding: 8px 16px;
+                font-weight: 600;
+                color: #64748b;
+            }
+            .stTabs [aria-selected="true"] {
+                background-color: rgba(99, 102, 241, 0.1) !important;
+                color: #4f46e5 !important;
+                border: 1px solid rgba(99, 102, 241, 0.25) !important;
+            }
+        </style>
+        """
 
 # Cache data & model loader
 @st.cache_resource(show_spinner="Loading Quikr dataset & ML Engine...")
@@ -281,6 +386,19 @@ with st.sidebar:
     st.image("https://img.icons8.com/fluency/96/car.png", width=70)
     st.title("AutoValuate AI")
     st.caption("Machine Learning & Automotive Intelligence")
+
+    theme_choice = st.radio(
+        "Theme Preference",
+        ["☀️ Light Mode", "🌙 Dark Mode"],
+        index=0,
+        horizontal=True
+    )
+    is_dark = "Dark" in theme_choice
+    chart_template = "plotly_dark" if is_dark else "plotly_white"
+    title_color = "#cbd5e1" if is_dark else "#475569"
+    sub_color = "#94a3b8" if is_dark else "#64748b"
+
+    st.markdown(get_custom_css(is_dark), unsafe_allow_html=True)
     st.divider()
 
     st.subheader("⚡ Database Overview")
@@ -410,15 +528,26 @@ with tab_val:
 
         # Display estimated fuel efficiency for the selected model
         model_fuel_efficiency = estimate_fuel_economy_kmpl(selected_model, selected_company, selected_fuel)
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(99, 102, 241, 0.35); border-left: 4px solid #38bdf8; border-radius: 12px; padding: 12px 18px; margin: 14px 0; color: #e2e8f0; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between;">
-            <div>
-                <span style="font-size: 1.15rem; margin-right: 6px;">⛽</span>
-                <span style="color: #cbd5e1; font-weight: 500;">Certified ARAI Fuel Mileage:</span>
+        if is_dark:
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(99, 102, 241, 0.35); border-left: 4px solid #38bdf8; border-radius: 12px; padding: 12px 18px; margin: 14px 0; color: #e2e8f0; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <span style="font-size: 1.15rem; margin-right: 6px;">⛽</span>
+                    <span style="color: #cbd5e1; font-weight: 500;">Certified ARAI Fuel Mileage:</span>
+                </div>
+                <strong style="color: #38bdf8; font-size: 1.15rem; background: rgba(56, 189, 248, 0.12); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.25);">{model_fuel_efficiency} km/L</strong>
             </div>
-            <strong style="color: #38bdf8; font-size: 1.15rem; background: rgba(56, 189, 248, 0.12); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.25);">{model_fuel_efficiency} km/L</strong>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6; border-radius: 12px; padding: 12px 18px; margin: 14px 0; color: #1e3a8a; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);">
+                <div>
+                    <span style="font-size: 1.15rem; margin-right: 6px;">⛽</span>
+                    <span style="color: #1e40af; font-weight: 600;">Certified ARAI Fuel Mileage:</span>
+                </div>
+                <strong style="color: #1d4ed8; font-size: 1.15rem; background: #dbeafe; padding: 4px 12px; border-radius: 8px; border: 1px solid #bfdbfe;">{model_fuel_efficiency} km/L</strong>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.write("5. Total Odometer Reading (Cumulative Kilometers Run)")
         st.caption("How many total kilometers has this used car driven over its lifetime?")
@@ -492,25 +621,27 @@ with tab_val:
             st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
             col_m1, col_m2 = st.columns(2)
             with col_m1:
+                val_color = "#10b981" if is_dark else "#059669"
                 st.markdown(f"""
                 <div class="metric-card">
-                    <div style="color: #cbd5e1; font-size: 0.88rem; font-weight: 600;">ARAI Fuel Mileage</div>
-                    <div style="font-size: 1.45rem; font-weight: 800; color: #10b981; margin-top: 6px;">
+                    <div style="color: {title_color}; font-size: 0.88rem; font-weight: 600;">ARAI Fuel Mileage</div>
+                    <div style="font-size: 1.45rem; font-weight: 800; color: {val_color}; margin-top: 6px;">
                         {curr_data['kmpl']} km/L
                     </div>
-                    <div style="color: #94a3b8; font-size: 0.82rem; margin-top: 6px;">Certified fuel efficiency</div>
+                    <div style="color: {sub_color}; font-size: 0.82rem; margin-top: 6px;">Certified fuel efficiency</div>
                 </div>
                 """, unsafe_allow_html=True)
 
             with col_m2:
                 retention = max(20, min(95, 100 - (current_year - curr_data['year']) * 7))
+                ret_color = "#38bdf8" if is_dark else "#2563eb"
                 st.markdown(f"""
                 <div class="metric-card">
-                    <div style="color: #cbd5e1; font-size: 0.88rem; font-weight: 600;">Est. Value Retention</div>
-                    <div style="font-size: 1.45rem; font-weight: 800; color: #38bdf8; margin-top: 6px;">
+                    <div style="color: {title_color}; font-size: 0.88rem; font-weight: 600;">Est. Value Retention</div>
+                    <div style="font-size: 1.45rem; font-weight: 800; color: {ret_color}; margin-top: 6px;">
                         {retention}% of Original
                     </div>
-                    <div style="color: #94a3b8; font-size: 0.82rem; margin-top: 6px;">Relative to initial invoice</div>
+                    <div style="color: {sub_color}; font-size: 0.82rem; margin-top: 6px;">Relative to initial invoice</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -586,22 +717,22 @@ with tab_eda:
     with kpi1:
         st.markdown(f"""
         <div class="metric-card">
-            <div style="color: #94a3b8; font-size: 0.85rem;">Average Selling Price</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #38bdf8; margin-top: 6px;">
+            <div style="color: {title_color}; font-size: 0.85rem;">Average Selling Price</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #2563eb; margin-top: 6px;">
                 {format_inr(df['Price'].mean())}
             </div>
-            <div style="color: #10b981; font-size: 0.8rem; margin-top: 4px;">Median: {format_inr(df['Price'].median())}</div>
+            <div style="color: #059669; font-size: 0.8rem; margin-top: 4px;">Median: {format_inr(df['Price'].median())}</div>
         </div>
         """, unsafe_allow_html=True)
 
     with kpi2:
         st.markdown(f"""
         <div class="metric-card">
-            <div style="color: #94a3b8; font-size: 0.85rem;">Average Total Run (Odometer)</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #a855f7; margin-top: 6px;">
+            <div style="color: {title_color}; font-size: 0.85rem;">Average Total Run (Odometer)</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #7c3aed; margin-top: 6px;">
                 {int(df['kms_driven'].mean()):,} km
             </div>
-            <div style="color: #64748b; font-size: 0.8rem; margin-top: 4px;">Lifetime Distance Driven</div>
+            <div style="color: {sub_color}; font-size: 0.8rem; margin-top: 4px;">Lifetime Distance Driven</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -609,11 +740,11 @@ with tab_eda:
         avg_kmpl = df['fuel_efficiency_kmpl'].mean()
         st.markdown(f"""
         <div class="metric-card">
-            <div style="color: #94a3b8; font-size: 0.85rem;">Fleet Avg Fuel Mileage</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #10b981; margin-top: 6px;">
+            <div style="color: {title_color}; font-size: 0.85rem;">Fleet Avg Fuel Mileage</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #059669; margin-top: 6px;">
                 {avg_kmpl:.1f} km/L
             </div>
-            <div style="color: #64748b; font-size: 0.8rem; margin-top: 4px;">Range: 10.5 - 26.0 km/L</div>
+            <div style="color: {sub_color}; font-size: 0.8rem; margin-top: 4px;">Range: 10.5 - 26.0 km/L</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -622,11 +753,11 @@ with tab_eda:
         top_brand_count = df['company'].value_counts().max()
         st.markdown(f"""
         <div class="metric-card">
-            <div style="color: #94a3b8; font-size: 0.85rem;">Leading Manufacturer</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #f59e0b; margin-top: 6px;">
+            <div style="color: {title_color}; font-size: 0.85rem;">Leading Manufacturer</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #d97706; margin-top: 6px;">
                 {top_brand}
             </div>
-            <div style="color: #64748b; font-size: 0.8rem; margin-top: 4px;">{top_brand_count} listings ({round(top_brand_count/len(df)*100, 1)}%)</div>
+            <div style="color: {sub_color}; font-size: 0.8rem; margin-top: 4px;">{top_brand_count} listings ({round(top_brand_count/len(df)*100, 1)}%)</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -635,15 +766,15 @@ with tab_eda:
     # Interactive Charts
     row1_c1, row1_c2 = st.columns(2)
     with row1_c1:
-        st.plotly_chart(create_brand_price_chart(df), use_container_width=True)
+        st.plotly_chart(create_brand_price_chart(df, template=chart_template), use_container_width=True)
     with row1_c2:
-        st.plotly_chart(create_depreciation_chart(df), use_container_width=True)
+        st.plotly_chart(create_depreciation_chart(df, template=chart_template), use_container_width=True)
 
     row2_c1, row2_c2 = st.columns(2)
     with row2_c1:
-        st.plotly_chart(create_kms_vs_price_chart(df), use_container_width=True)
+        st.plotly_chart(create_kms_vs_price_chart(df, template=chart_template), use_container_width=True)
     with row2_c2:
-        st.plotly_chart(create_fuel_distribution_chart(df), use_container_width=True)
+        st.plotly_chart(create_fuel_distribution_chart(df, template=chart_template), use_container_width=True)
 
 # ==============================================================================
 # TAB 3: SIDE-BY-SIDE VEHICLE COMPARISON
@@ -667,9 +798,9 @@ with tab_compare:
         kmpl_a = estimate_fuel_economy_kmpl(c1_model, c1_company, c1_fuel)
         st.markdown(f"""
         <div class="metric-card" style="border-color: rgba(56, 189, 248, 0.4); text-align: center; margin-top: 15px;">
-            <div style="color: #94a3b8;">Valuation Estimate for Vehicle A</div>
-            <div style="font-size: 2.2rem; font-weight: 800; color: #38bdf8; margin: 8px 0;">{format_inr(price_a)}</div>
-            <div style="color: #cbd5e1; font-size: 0.9rem;">{c1_model} ({c1_year}) • ⛽ {kmpl_a} km/L</div>
+            <div style="color: {title_color};">Valuation Estimate for Vehicle A</div>
+            <div style="font-size: 2.2rem; font-weight: 800; color: #0284c7; margin: 8px 0;">{format_inr(price_a)}</div>
+            <div style="color: {sub_color}; font-size: 0.9rem;">{c1_model} ({c1_year}) • ⛽ {kmpl_a} km/L</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -686,9 +817,9 @@ with tab_compare:
         kmpl_b = estimate_fuel_economy_kmpl(c2_model, c2_company, c2_fuel)
         st.markdown(f"""
         <div class="metric-card" style="border-color: rgba(168, 85, 247, 0.4); text-align: center; margin-top: 15px;">
-            <div style="color: #94a3b8;">Valuation Estimate for Vehicle B</div>
-            <div style="font-size: 2.2rem; font-weight: 800; color: #a855f7; margin: 8px 0;">{format_inr(price_b)}</div>
-            <div style="color: #cbd5e1; font-size: 0.9rem;">{c2_model} ({c2_year}) • ⛽ {kmpl_b} km/L</div>
+            <div style="color: {title_color};">Valuation Estimate for Vehicle B</div>
+            <div style="font-size: 2.2rem; font-weight: 800; color: #7c3aed; margin: 8px 0;">{format_inr(price_b)}</div>
+            <div style="color: {sub_color}; font-size: 0.9rem;">{c2_model} ({c2_year}) • ⛽ {kmpl_b} km/L</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -700,9 +831,9 @@ with tab_compare:
     
     st.markdown(f"""
     <div class="feature-card" style="text-align: center; font-size: 1.1rem;">
-        ⚡ <strong>Price Difference:</strong> <span style="color: #10b981; font-weight: 700;">{format_inr(diff)}</span>
+        ⚡ <strong>Price Difference:</strong> <span style="color: #059669; font-weight: 700;">{format_inr(diff)}</span>
         <br>
-        <span style="color: #94a3b8; font-size: 0.95rem;">{cheaper} is more economical than {expensive} by <strong>{format_inr(diff)}</strong>.</span>
+        <span style="color: {sub_color}; font-size: 0.95rem;">{cheaper} is more economical than {expensive} by <strong>{format_inr(diff)}</strong>.</span>
     </div>
     """, unsafe_allow_html=True)
 
