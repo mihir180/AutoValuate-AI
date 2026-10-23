@@ -1,947 +1,1031 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os
-import requests
 from utils import (
     format_inr,
     calculate_emi,
     estimate_fuel_economy_kmpl,
     load_data_and_model,
     predict_price,
+    get_valuation_range,
+    estimate_running_cost,
     create_brand_price_chart,
     create_depreciation_chart,
     create_kms_vs_price_chart,
-    create_fuel_distribution_chart
+    create_fuel_distribution_chart,
 )
 
-# Set page configuration with premium title & wide layout
+# ═══════════════════════════════════════════════════════════════════════════════
+# Page configuration
+# ═══════════════════════════════════════════════════════════════════════════════
 st.set_page_config(
-    page_title="AutoValuate AI | Quikr Car Price Predictor",
-    page_icon="🚗",
+    page_title="AutoValuate — Used Car Valuation",
+    page_icon="⬡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed",
 )
 
-def get_custom_css(is_dark):
-    if is_dark:
-        return """
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-            html, body, [class*="css"] {
-                font-family: 'Plus Jakarta Sans', sans-serif;
-            }
-            .stApp {
-                background-color: #0b0f19 !important;
-                background-image: 
-                    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, rgba(11, 15, 25, 0) 50%),
-                    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.12) 0%, rgba(11, 15, 25, 0) 50%) !important;
-                color: #f8fafc !important;
-            }
-            .metric-card {
-                background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%) !important;
-                backdrop-filter: blur(16px);
-                border: 1px solid rgba(99, 102, 241, 0.35) !important;
-                border-radius: 16px;
-                padding: 22px;
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
-                transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-            }
-            .metric-card:hover {
-                transform: translateY(-3px);
-                border-color: rgba(99, 102, 241, 0.65) !important;
-                box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.25);
-            }
-            .clarification-box {
-                background: rgba(30, 41, 59, 0.8);
-                border-left: 4px solid #38bdf8;
-                border-radius: 10px;
-                padding: 14px 18px;
-                margin: 15px 0;
-                font-size: 0.92rem;
-                color: #cbd5e1;
-            }
-            .hero-container {
-                background: linear-gradient(135deg, rgba(30, 27, 75, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
-                border: 1px solid rgba(99, 102, 241, 0.3);
-                border-radius: 20px;
-                padding: 30px;
-                margin-bottom: 25px;
-            }
-            .hero-badge {
-                display: inline-block;
-                padding: 6px 14px;
-                background: rgba(99, 102, 241, 0.2);
-                border: 1px solid rgba(99, 102, 241, 0.4);
-                border-radius: 9999px;
-                color: #a5b4fc;
-                font-size: 0.82rem;
-                font-weight: 600;
-                margin-bottom: 12px;
-            }
-            .hero-title {
-                font-size: 2.2rem;
-                font-weight: 800;
-                margin: 0;
-                background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-            }
-            .hero-desc {
-                color: #94a3b8;
-                font-size: 1.02rem;
-                margin-top: 8px;
-                line-height: 1.5;
-            }
-            .prediction-box {
-                background: linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(17, 24, 39, 0.95) 100%);
-                border: 2px solid rgba(99, 102, 241, 0.45);
-                border-radius: 20px;
-                padding: 28px;
-                text-align: center;
-                box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.25);
-                margin-top: 15px;
-            }
-            .prediction-badge {
-                color: #10b981;
-                background: rgba(16, 185, 129, 0.12);
-                border: 1px solid rgba(16, 185, 129, 0.3);
-                padding: 5px 12px;
-                border-radius: 20px;
-                font-size: 0.85rem;
-                font-weight: 600;
-            }
-            .prediction-val {
-                font-size: 3.2rem;
-                font-weight: 800;
-                color: #38bdf8;
-                margin: 12px 0;
-                text-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
-            }
-            .price-range {
-                color: #94a3b8;
-                font-size: 0.95rem;
-                font-weight: 500;
-            }
-            .feature-card {
-                background: rgba(15, 23, 42, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-                border-radius: 12px;
-                padding: 16px;
-                margin-top: 10px;
-            }
-            .emi-card-wrapper {
-                background: rgba(30, 41, 59, 0.7);
-                border: 1px solid rgba(99, 102, 241, 0.25);
-                border-radius: 18px;
-                padding: 24px;
-                margin-top: 25px;
-            }
-            .emi-stat-card {
-                background: rgba(15, 23, 42, 0.85);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 14px;
-                padding: 18px 20px;
-                text-align: center;
-            }
-            .emi-stat-label {
-                color: #94a3b8;
-                font-size: 0.82rem;
-                font-weight: 600;
-                text-transform: uppercase;
-            }
-            .emi-stat-val {
-                font-size: 1.65rem;
-                font-weight: 800;
-                color: #ffffff;
-            }
-            .emi-stat-sub {
-                color: #64748b;
-                font-size: 0.8rem;
-                margin-top: 6px;
-            }
-            div[data-testid="stButton"] > button, .stButton > button {
-                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
-                color: #ffffff !important;
-                border: 1px solid rgba(165, 180, 252, 0.35) !important;
-                border-radius: 12px !important;
-                padding: 0.75rem 1.5rem !important;
-                font-weight: 700 !important;
-                font-size: 1.05rem !important;
-                box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.5) !important;
-                transition: all 0.25s ease !important;
-            }
-            div[data-testid="stButton"] > button:hover, .stButton > button:hover {
-                background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
-                box-shadow: 0 6px 25px 0 rgba(99, 102, 241, 0.75) !important;
-                transform: translateY(-2px) !important;
-                color: #ffffff !important;
-            }
-            [data-testid="stAlert"] {
-                background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
-                border: 1px solid rgba(99, 102, 241, 0.4) !important;
-                border-left: 5px solid #38bdf8 !important;
-                border-radius: 12px !important;
-                color: #e2e8f0 !important;
-            }
-        </style>
-        """
-    else:
-        # LIGHT MODE (Crisp, High-End SaaS Aesthetic)
-        return """
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-            html, body, [class*="css"] {
-                font-family: 'Plus Jakarta Sans', sans-serif;
-            }
-            .stApp {
-                background-color: #f8fafc !important;
-                background-image: 
-                    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.06) 0%, rgba(248, 250, 252, 0) 50%),
-                    radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.05) 0%, rgba(248, 250, 252, 0) 50%) !important;
-                color: #0f172a !important;
-            }
-            /* Crisp White Metric Cards */
-            .metric-card {
-                background: #ffffff !important;
-                border: 1px solid #e2e8f0 !important;
-                border-radius: 16px;
-                padding: 22px;
-                box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04) !important;
-                transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-            }
-            .metric-card:hover {
-                transform: translateY(-3px);
-                border-color: #6366f1 !important;
-                box-shadow: 0 10px 25px -3px rgba(99, 102, 241, 0.15) !important;
-            }
-            .clarification-box {
-                background: #f1f5f9 !important;
-                border-left: 4px solid #0284c7 !important;
-                border-radius: 10px;
-                padding: 14px 18px;
-                margin: 15px 0;
-                font-size: 0.92rem;
-                color: #334155 !important;
-            }
-            .hero-container {
-                background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-                border: 1px solid #e2e8f0 !important;
-                border-radius: 20px;
-                padding: 30px;
-                margin-bottom: 25px;
-                box-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.06) !important;
-            }
-            .hero-badge {
-                display: inline-block;
-                padding: 6px 14px;
-                background: rgba(99, 102, 241, 0.08) !important;
-                border: 1px solid rgba(99, 102, 241, 0.25) !important;
-                border-radius: 9999px;
-                color: #4f46e5 !important;
-                font-size: 0.82rem;
-                font-weight: 600;
-                margin-bottom: 12px;
-            }
-            .hero-title {
-                font-size: 2.2rem;
-                font-weight: 800;
-                margin: 0;
-                background: linear-gradient(135deg, #0f172a 0%, #334155 50%, #4f46e5 100%) !important;
-                -webkit-background-clip: text !important;
-                -webkit-text-fill-color: transparent !important;
-            }
-            .hero-desc {
-                color: #475569 !important;
-                font-size: 1.02rem;
-                margin-top: 8px;
-                line-height: 1.5;
-            }
-            .prediction-box {
-                background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #1e293b 100%) !important;
-                border: 2px solid rgba(99, 102, 241, 0.45) !important;
-                border-radius: 20px;
-                padding: 28px;
-                text-align: center;
-                box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.25);
-                margin-top: 15px;
-            }
-            .prediction-badge {
-                color: #10b981;
-                background: rgba(16, 185, 129, 0.15);
-                border: 1px solid rgba(16, 185, 129, 0.3);
-                padding: 5px 12px;
-                border-radius: 20px;
-                font-size: 0.85rem;
-                font-weight: 600;
-            }
-            .prediction-val {
-                font-size: 3.2rem;
-                font-weight: 800;
-                color: #38bdf8;
-                margin: 12px 0;
-                text-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
-            }
-            .price-range {
-                color: #cbd5e1;
-                font-size: 0.95rem;
-                font-weight: 500;
-            }
-            .feature-card {
-                background: #ffffff !important;
-                border: 1px solid #e2e8f0 !important;
-                border-radius: 12px;
-                padding: 16px;
-                margin-top: 10px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            }
-            .emi-card-wrapper {
-                background: #ffffff !important;
-                border: 1px solid #e2e8f0 !important;
-                border-radius: 18px;
-                padding: 24px;
-                margin-top: 25px;
-                box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
-            }
-            .emi-stat-card {
-                background: #f8fafc !important;
-                border: 1px solid #e2e8f0 !important;
-                border-radius: 14px;
-                padding: 18px 20px;
-                text-align: center;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-            }
-            .emi-stat-label {
-                color: #64748b !important;
-                font-size: 0.82rem;
-                font-weight: 600;
-                text-transform: uppercase;
-            }
-            .emi-stat-val {
-                color: #0f172a !important;
-                font-size: 1.65rem;
-                font-weight: 800;
-            }
-            .emi-stat-sub {
-                color: #64748b !important;
-                font-size: 0.8rem;
-                margin-top: 6px;
-            }
-            div[data-testid="stButton"] > button, .stButton > button {
-                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
-                color: #ffffff !important;
-                border: none !important;
-                border-radius: 12px !important;
-                padding: 0.75rem 1.5rem !important;
-                font-weight: 700 !important;
-                font-size: 1.05rem !important;
-                box-shadow: 0 4px 15px -2px rgba(99, 102, 241, 0.4) !important;
-                transition: all 0.25s ease !important;
-            }
-            div[data-testid="stButton"] > button:hover, .stButton > button:hover {
-                background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
-                box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.6) !important;
-                transform: translateY(-2px) !important;
-                color: #ffffff !important;
-            }
-            [data-testid="stAlert"] {
-                background: #eff6ff !important;
-                border: 1px solid #bfdbfe !important;
-                border-left: 5px solid #3b82f6 !important;
-                border-radius: 12px !important;
-                color: #1e3a8a !important;
-            }
-            .stTabs [data-baseweb="tab-list"] {
-                gap: 8px;
-                border-bottom: 1px solid #e2e8f0;
-                padding-bottom: 6px;
-            }
-            .stTabs [data-baseweb="tab"] {
-                border-radius: 10px;
-                padding: 8px 16px;
-                font-weight: 600;
-                color: #64748b;
-            }
-            .stTabs [aria-selected="true"] {
-                background-color: rgba(99, 102, 241, 0.1) !important;
-                color: #4f46e5 !important;
-                border: 1px solid rgba(99, 102, 241, 0.25) !important;
-            }
-        </style>
-        """
+# ═══════════════════════════════════════════════════════════════════════════════
+# Theme & CSS
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Cache data & model loader
-@st.cache_resource(show_spinner="Loading Quikr dataset & ML Engine...")
+if "theme" not in st.session_state:
+    st.session_state["theme"] = "light"
+
+
+def _css(is_dark: bool) -> str:
+    """Return the full custom stylesheet for light or dark mode."""
+    if is_dark:
+        bg = "#1A1A18"
+        surface = "#242422"
+        surface_alt = "#2E2E2B"
+        text = "#E8E7E3"
+        text2 = "#9B9A96"
+        text3 = "#6D6D69"
+        accent = "#C94F47"
+        accent_hover = "#D4645C"
+        border = "#3A3A37"
+        input_bg = "#2E2E2B"
+        tag_bg = "#2E2E2B"
+    else:
+        bg = "#F7F6F2"
+        surface = "#FFFFFF"
+        surface_alt = "#F0EFEB"
+        text = "#20211F"
+        text2 = "#777873"
+        text3 = "#A3A29E"
+        accent = "#B83A32"
+        accent_hover = "#9C302A"
+        border = "#E3E1DA"
+        input_bg = "#FFFFFF"
+        tag_bg = "#F0EFEB"
+
+    return f"""<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    /* ── Base ───────────────────────────────────────────────────────── */
+    html, body, [class*="css"] {{
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: {text};
+    }}
+    .stApp {{
+        background-color: {bg} !important;
+    }}
+
+    /* ── Sidebar ────────────────────────────────────────────────────── */
+    [data-testid="stSidebar"] {{
+        background-color: {surface} !important;
+        border-right: 1px solid {border};
+    }}
+
+    /* ── Top wordmark bar ───────────────────────────────────────────── */
+    .av-topbar {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 0 20px 0;
+        border-bottom: 1px solid {border};
+        margin-bottom: 24px;
+    }}
+    .av-wordmark {{
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: {text};
+        letter-spacing: -0.01em;
+    }}
+    .av-wordmark span {{
+        color: {accent};
+    }}
+    .av-tagline {{
+        font-size: 0.8rem;
+        color: {text2};
+        margin-top: 1px;
+    }}
+
+    /* ── Tab navigation ─────────────────────────────────────────────── */
+    .stTabs [data-baseweb="tab-list"] {{
+        gap: 0;
+        border-bottom: 1px solid {border};
+        background: transparent;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        padding: 10px 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: {text2};
+        border: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        background: transparent;
+    }}
+    .stTabs [aria-selected="true"] {{
+        color: {accent} !important;
+        border-bottom: 2px solid {accent} !important;
+        background: transparent !important;
+        font-weight: 600;
+    }}
+    .stTabs [data-baseweb="tab"]:hover {{
+        color: {text} !important;
+        background: transparent !important;
+    }}
+    .stTabs [data-baseweb="tab-highlight"] {{
+        display: none !important;
+    }}
+    .stTabs [data-baseweb="tab-border"] {{
+        display: none !important;
+    }}
+
+    /* ── Buttons ─────────────────────────────────────────────────────── */
+    div[data-testid="stButton"] > button,
+    .stButton > button {{
+        background-color: {accent} !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding: 0.6rem 1.3rem !important;
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        transition: background-color 0.15s ease !important;
+    }}
+    div[data-testid="stButton"] > button:hover,
+    .stButton > button:hover {{
+        background-color: {accent_hover} !important;
+    }}
+    /* secondary / download buttons */
+    div[data-testid="stDownloadButton"] > button {{
+        background-color: transparent !important;
+        color: {text} !important;
+        border: 1px solid {border} !important;
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+    }}
+    div[data-testid="stDownloadButton"] > button:hover {{
+        background-color: {surface_alt} !important;
+    }}
+
+    /* ── Inputs ──────────────────────────────────────────────────────── */
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div {{
+        background-color: {input_bg} !important;
+        border-color: {border} !important;
+        border-radius: 6px !important;
+    }}
+    .stSlider [data-baseweb="slider"] div[role="slider"] {{
+        background-color: {accent} !important;
+    }}
+    .stSlider [data-testid="stTickBar"] {{
+        display: none;
+    }}
+
+    /* ── Section label ──────────────────────────────────────────────── */
+    .av-section-label {{
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: {text3};
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 12px;
+    }}
+
+    /* ── Valuation result ───────────────────────────────────────────── */
+    .av-result {{
+        background: {surface};
+        border: 1px solid {border};
+        border-radius: 6px;
+        padding: 28px 24px;
+    }}
+    .av-result-vehicle {{
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: {text};
+        margin-bottom: 2px;
+    }}
+    .av-result-specs {{
+        font-size: 0.82rem;
+        color: {text2};
+        margin-bottom: 20px;
+    }}
+    .av-result-price {{
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: {text};
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+    }}
+    .av-result-caption {{
+        font-size: 0.82rem;
+        color: {text2};
+        margin-top: 4px;
+        margin-bottom: 20px;
+    }}
+
+    /* tier row */
+    .av-tiers {{
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: {border};
+        border: 1px solid {border};
+        border-radius: 6px;
+        overflow: hidden;
+    }}
+    .av-tier {{
+        background: {surface};
+        padding: 14px 12px;
+        text-align: center;
+    }}
+    .av-tier-label {{
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: {text3};
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }}
+    .av-tier-value {{
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: {text};
+        font-variant-numeric: tabular-nums;
+    }}
+    .av-tier-sub {{
+        font-size: 0.7rem;
+        color: {text2};
+        margin-top: 2px;
+    }}
+
+    /* ── Tags ────────────────────────────────────────────────────────── */
+    .av-tags {{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+    }}
+    .av-tag {{
+        background: {tag_bg};
+        border: 1px solid {border};
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 0.78rem;
+        color: {text2};
+    }}
+    .av-tag strong {{
+        color: {text};
+        font-weight: 600;
+    }}
+
+    /* ── Finance summary ────────────────────────────────────────────── */
+    .av-fin-grid {{
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: {border};
+        border: 1px solid {border};
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 12px;
+    }}
+    @media (max-width: 768px) {{
+        .av-fin-grid {{ grid-template-columns: repeat(2, 1fr); }}
+        .av-tiers {{ grid-template-columns: 1fr; }}
+    }}
+    .av-fin-cell {{
+        background: {surface};
+        padding: 16px 14px;
+    }}
+    .av-fin-label {{
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: {text3};
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }}
+    .av-fin-value {{
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: {text};
+        font-variant-numeric: tabular-nums;
+    }}
+    .av-fin-sub {{
+        font-size: 0.72rem;
+        color: {text2};
+        margin-top: 2px;
+    }}
+
+    /* ── Compare card ───────────────────────────────────────────────── */
+    .av-compare-result {{
+        background: {surface};
+        border: 1px solid {border};
+        border-radius: 6px;
+        padding: 20px;
+        margin-top: 12px;
+    }}
+    .av-compare-price {{
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: {accent};
+        font-variant-numeric: tabular-nums;
+    }}
+    .av-compare-detail {{
+        font-size: 0.82rem;
+        color: {text2};
+        margin-top: 4px;
+    }}
+
+    /* ── Info note ───────────────────────────────────────────────────── */
+    .av-note {{
+        background: {surface_alt};
+        border-left: 3px solid {border};
+        border-radius: 4px;
+        padding: 10px 14px;
+        font-size: 0.8rem;
+        color: {text2};
+        line-height: 1.55;
+        margin: 14px 0;
+    }}
+
+    /* ── Comparison table ───────────────────────────────────────────── */
+    .av-compare-summary {{
+        background: {surface};
+        border: 1px solid {border};
+        border-radius: 6px;
+        padding: 16px 20px;
+        font-size: 0.88rem;
+        color: {text};
+    }}
+    .av-compare-summary strong {{
+        color: {accent};
+    }}
+
+    /* ── Footer ──────────────────────────────────────────────────────── */
+    .av-footer {{
+        border-top: 1px solid {border};
+        padding: 20px 0 8px 0;
+        margin-top: 48px;
+        font-size: 0.75rem;
+        color: {text3};
+        line-height: 1.7;
+    }}
+
+    /* ── Hide default Streamlit footer & header ──────────────────────── */
+    header[data-testid="stHeader"] {{
+        background: {bg} !important;
+    }}
+    footer {{
+        display: none !important;
+    }}
+
+    /* ── Dataframe styling ───────────────────────────────────────────── */
+    [data-testid="stDataFrame"] {{
+        border: 1px solid {border};
+        border-radius: 6px;
+        overflow: hidden;
+    }}
+</style>"""
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Load resources
+# ═══════════════════════════════════════════════════════════════════════════════
+@st.cache_resource(show_spinner="Loading dataset and model…")
 def get_cached_resources():
     return load_data_and_model()
+
 
 try:
     df, model = get_cached_resources()
 except Exception as e:
-    st.error(f"Error loading resources: {e}")
+    st.error(f"Failed to load data or model: {e}")
     st.stop()
 
-# ================= SIDEBAR =================
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Sidebar — minimal: theme toggle only
+# ═══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.image("https://img.icons8.com/fluency/96/car.png", width=70)
-    st.title("AutoValuate AI")
-    st.caption("Machine Learning & Automotive Intelligence")
-
+    st.markdown("#### Appearance")
     theme_choice = st.radio(
-        "Theme Preference",
-        ["☀️ Light Mode", "🌙 Dark Mode"],
-        index=0,
-        horizontal=True
+        "Theme",
+        ["Light", "Dark"],
+        index=0 if st.session_state["theme"] == "light" else 1,
+        horizontal=True,
+        label_visibility="collapsed",
     )
-    is_dark = "Dark" in theme_choice
+    is_dark = theme_choice == "Dark"
+    st.session_state["theme"] = "dark" if is_dark else "light"
     chart_template = "plotly_dark" if is_dark else "plotly_white"
-    title_color = "#cbd5e1" if is_dark else "#475569"
-    sub_color = "#94a3b8" if is_dark else "#64748b"
-
-    st.markdown(get_custom_css(is_dark), unsafe_allow_html=True)
-    st.divider()
-
-    st.subheader("⚡ Database Overview")
-    col_sb1, col_sb2 = st.columns(2)
-    with col_sb1:
-        st.metric("Total Cars", f"{len(df):,}")
-    with col_sb2:
-        st.metric("Brands", f"{df['company'].nunique()}")
-
-    st.metric("Avg Price", format_inr(df['Price'].mean()))
-    st.metric("Model R² Score", "83.88%", help="Evaluated on independent test validation set")
 
     st.divider()
-    
-    # API & Custom Data Integration Widget
-    st.subheader("🌐 External API & Custom Data")
-    api_source = st.selectbox(
-        "Data Source Provider",
-        ["Built-in Quikr & ARAI Reference (Active)", "Custom RapidAPI (Car Data)", "Custom Upload (CSV)"],
-        index=0
+    st.caption(
+        "AutoValuate uses a linear regression model trained on "
+        f"~{len(df):,} cleaned listings from the Quikr used car dataset. "
+        "Predictions are estimates, not guaranteed prices."
     )
 
-    if api_source == "Custom RapidAPI (Car Data)":
-        user_api_key = st.text_input("Enter RapidAPI Key", type="password", placeholder="Paste your API Key here")
-        api_endpoint = st.text_input("Endpoint URL", value="https://car-data.p.rapidapi.com/cars")
-        if st.button("🔌 Test API Connection"):
-            if not user_api_key:
-                st.warning("Please enter your API Key first.")
-            else:
-                with st.spinner("Connecting to external Automotive API..."):
-                    try:
-                        headers = {
-                            "X-RapidAPI-Key": user_api_key,
-                            "X-RapidAPI-Host": "car-data.p.rapidapi.com"
-                        }
-                        res = requests.get(f"{api_endpoint}?limit=2", headers=headers, timeout=5)
-                        if res.status_code == 200:
-                            st.success("API Connected successfully!")
-                        else:
-                            st.error(f"API returned status {res.status_code}: {res.text[:100]}")
-                    except Exception as err:
-                        st.error(f"Connection failed: {err}")
+# Inject CSS after theme is known
+st.markdown(_css(is_dark), unsafe_allow_html=True)
 
-    elif api_source == "Custom Upload (CSV)":
-        uploaded_file = st.file_uploader("Upload Your Verified Dataset", type=["csv"])
-        if uploaded_file is not None:
-            try:
-                user_df = pd.read_csv(uploaded_file)
-                st.success(f"Loaded {len(user_df)} records successfully!")
-            except Exception as ex:
-                st.error(f"Error reading CSV: {ex}")
-
-    st.divider()
-    st.caption("Developed with Streamlit, Plotly & Scikit-Learn")
-
-# ================= HERO HEADER =================
+# ═══════════════════════════════════════════════════════════════════════════════
+# Wordmark header
+# ═══════════════════════════════════════════════════════════════════════════════
 st.markdown("""
-<div class="hero-container">
-    <span class="hero-badge">✦ AUTOMOTIVE PREDICTIVE INTELLIGENCE</span>
-    <h1 class="hero-title">Quikr Used Car Price Valuation & Analytics</h1>
-    <p class="hero-desc">
-        Empowering used car buyers and sellers with machine learning valuations, verified Indian ARAI fuel efficiency metrics, and cumulative odometer analytics.
-    </p>
+<div class="av-topbar">
+    <div>
+        <div class="av-wordmark">Auto<span>Valuate</span></div>
+        <div class="av-tagline">Used car valuation & market analysis</div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Main Navigation Tabs
-tab_val, tab_eda, tab_compare, tab_explorer, tab_specs = st.tabs([
-    "🔮 AI Valuation Predictor",
-    "📊 Market Insights & EDA",
-    "⚖️ Side-by-Side Comparison",
-    "🔍 Inventory Explorer",
-    "🧠 Pipeline & Tech Specs"
+# ═══════════════════════════════════════════════════════════════════════════════
+# Navigation
+# ═══════════════════════════════════════════════════════════════════════════════
+tab_est, tab_insights, tab_compare, tab_inventory, tab_method = st.tabs([
+    "Estimate",
+    "Market Insights",
+    "Compare Cars",
+    "Inventory",
+    "Methodology",
 ])
 
-# ==============================================================================
-# TAB 1: VALUATION PREDICTOR
-# ==============================================================================
-with tab_val:
-    st.subheader("🚗 Estimate Car Market Resale Value")
-    st.write("Specify vehicle attributes to compute fair valuation alongside certified fuel economy specs.")
+# ─── Shared data ────────────────────────────────────────────────────────────
+companies = sorted(df["company"].unique().tolist())
+fuel_types = sorted(df["fuel_type"].unique().tolist())
+min_year = int(df["year"].min())
+max_year = int(df["year"].max())
+median_year = int(df["year"].median())
+median_kms = int(df["kms_driven"].median())
 
-    col_left, col_right = st.columns([1.1, 0.9], gap="large")
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 1 — Estimate
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_est:
+    st.markdown("## Find out what your car is worth")
+    st.markdown(
+        "Get an estimated resale value based on your car's details "
+        "and the available used-car dataset."
+    )
+    st.markdown("---")
 
-    with col_left:
-        # Dynamic Company & Model Hierarchy
-        companies = sorted(df['company'].unique().tolist())
+    col_form, col_result = st.columns([1.1, 0.9], gap="large")
+
+    with col_form:
+        # ── Vehicle details ──────────────────────────────────────────────
+        st.markdown('<div class="av-section-label">Vehicle details</div>', unsafe_allow_html=True)
+
+        default_company = companies.index("Maruti") if "Maruti" in companies else 0
         selected_company = st.selectbox(
-            "1. Select Manufacturer / Brand",
+            "Manufacturer",
             companies,
-            index=companies.index("Maruti") if "Maruti" in companies else 0,
-            help="Choose the car manufacturer brand"
+            index=default_company,
+            key="est_company",
         )
 
-        # Dynamic filtering of models belonging strictly to the selected company
-        available_models = sorted(df[df['company'] == selected_company]['name'].unique().tolist())
+        available_models = sorted(
+            df[df["company"] == selected_company]["name"].unique().tolist()
+        )
         selected_model = st.selectbox(
-            "2. Select Car Model Name",
+            "Model",
             available_models,
-            help="Vehicle models filtered according to your chosen brand"
+            key="est_model",
         )
 
-        col_input1, col_input2 = st.columns(2)
-        with col_input1:
-            current_year = 2026
-            min_yr = int(df['year'].min())
-            max_yr = int(df['year'].max())
+        c_yr, c_fuel = st.columns(2)
+        with c_yr:
             selected_year = st.slider(
-                "3. Manufacturing Year",
-                min_value=min_yr,
-                max_value=max_yr,
-                value=2017,
-                help=f"Year the car was manufactured ({min_yr} - {max_yr})"
+                "Model year",
+                min_value=min_year,
+                max_value=max_year,
+                value=min(median_year, max_year),
+                key="est_year",
             )
-            car_age = current_year - selected_year
-            st.caption(f"🕒 Vehicle Age: **{car_age} years**")
-
-        with col_input2:
-            fuel_types = sorted(df['fuel_type'].unique().tolist())
+        with c_fuel:
+            default_fuel = fuel_types.index("Petrol") if "Petrol" in fuel_types else 0
             selected_fuel = st.radio(
-                "4. Fuel Variant",
+                "Fuel type",
                 fuel_types,
+                index=default_fuel,
                 horizontal=True,
-                index=fuel_types.index("Petrol") if "Petrol" in fuel_types else 0,
-                help="Engine fuel variant"
+                key="est_fuel",
             )
 
-        # Display estimated fuel efficiency for the selected model
-        model_fuel_efficiency = estimate_fuel_economy_kmpl(selected_model, selected_company, selected_fuel)
-        if is_dark:
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, rgba(30, 27, 75, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(99, 102, 241, 0.35); border-left: 4px solid #38bdf8; border-radius: 12px; padding: 12px 18px; margin: 14px 0; color: #e2e8f0; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <span style="font-size: 1.15rem; margin-right: 6px;">⛽</span>
-                    <span style="color: #cbd5e1; font-weight: 500;">Certified ARAI Fuel Mileage:</span>
-                </div>
-                <strong style="color: #38bdf8; font-size: 1.15rem; background: rgba(56, 189, 248, 0.12); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.25);">{model_fuel_efficiency} km/L</strong>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #3b82f6; border-radius: 12px; padding: 12px 18px; margin: 14px 0; color: #1e3a8a; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);">
-                <div>
-                    <span style="font-size: 1.15rem; margin-right: 6px;">⛽</span>
-                    <span style="color: #1e40af; font-weight: 600;">Certified ARAI Fuel Mileage:</span>
-                </div>
-                <strong style="color: #1d4ed8; font-size: 1.15rem; background: #dbeafe; padding: 4px 12px; border-radius: 8px; border: 1px solid #bfdbfe;">{model_fuel_efficiency} km/L</strong>
-            </div>
-            """, unsafe_allow_html=True)
+        # ── Usage ────────────────────────────────────────────────────────
+        st.markdown('<div class="av-section-label" style="margin-top:20px;">Usage</div>', unsafe_allow_html=True)
 
-        st.write("5. Total Odometer Reading (Cumulative Kilometers Run)")
-        st.caption("How many total kilometers has this used car driven over its lifetime?")
-        
-        kms_preset = st.radio(
-            "Quick Lifetime Presets",
-            ["Low Use (25,000 km)", "Average Use (55,000 km)", "High Mileage (95,000 km)", "Custom Input"],
-            horizontal=True,
-            index=1
+        selected_kms = st.number_input(
+            "Kilometres driven",
+            min_value=100,
+            max_value=400000,
+            value=min(median_kms, 400000),
+            step=1000,
+            key="est_kms",
+            help="Total distance shown on the odometer",
         )
 
-        if kms_preset == "Low Use (25,000 km)":
-            selected_kms = 25000
-        elif kms_preset == "Average Use (55,000 km)":
-            selected_kms = 55000
-        elif kms_preset == "High Mileage (95,000 km)":
-            selected_kms = 95000
-        else:
-            selected_kms = st.number_input(
-                "Enter Exact Odometer Reading (km)",
-                min_value=100,
-                max_value=400000,
-                value=45000,
-                step=1000
-            )
+        presets = {"25,000 km": 25000, "55,000 km": 55000, "95,000 km": 95000}
+        preset_cols = st.columns(len(presets))
+        for col, (label, val) in zip(preset_cols, presets.items()):
+            with col:
+                if st.button(label, key=f"preset_{val}", use_container_width=True):
+                    st.session_state["est_kms"] = val
+                    st.rerun()
 
-        predict_btn = st.button("🚀 Calculate Market Valuation", type="primary", use_container_width=True)
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        estimate_btn = st.button("Estimate resale value", use_container_width=True, key="btn_estimate")
 
-    with col_right:
-        # Prediction Computation & Result Display
-        if predict_btn or 'last_prediction' not in st.session_state:
-            with st.spinner("Calculating valuation and market depreciation..."):
-                predicted_price = predict_price(
-                    model,
-                    selected_company,
-                    selected_model,
-                    selected_year,
-                    selected_kms,
-                    selected_fuel
+    # ── Results ──────────────────────────────────────────────────────────
+    with col_result:
+        should_calculate = estimate_btn or "valuation" not in st.session_state
+
+        if should_calculate:
+            with st.spinner("Calculating…"):
+                raw_pred = predict_price(
+                    model, selected_company, selected_model,
+                    selected_year, selected_kms, selected_fuel,
                 )
-                st.session_state['last_prediction'] = {
-                    'price': predicted_price,
-                    'company': selected_company,
-                    'model': selected_model,
-                    'year': selected_year,
-                    'kms': selected_kms,
-                    'fuel': selected_fuel,
-                    'kmpl': model_fuel_efficiency
+                tiers = get_valuation_range(raw_pred)
+                fuel_eff = estimate_fuel_economy_kmpl(selected_model, selected_company, selected_fuel)
+                cost_km, cost_1k = estimate_running_cost(selected_fuel, fuel_eff)
+
+                st.session_state["valuation"] = {
+                    "price": raw_pred,
+                    "tiers": tiers,
+                    "company": selected_company,
+                    "model": selected_model,
+                    "year": selected_year,
+                    "kms": selected_kms,
+                    "fuel": selected_fuel,
+                    "kmpl": fuel_eff,
+                    "cost_km": cost_km,
+                    "cost_1k": cost_1k,
                 }
 
-        curr_data = st.session_state.get('last_prediction')
-        if curr_data:
-            pred_val = curr_data['price']
-            lower_bound = max(20000, pred_val * 0.92)
-            upper_bound = pred_val * 1.08
+        val = st.session_state.get("valuation")
+        if val:
+            t = val["tiers"]
+            label_color = '#9B9A96' if is_dark else '#A3A29E'
+            st.markdown(f"""<div class="av-result">
+<div class="av-result-vehicle">{val['year']} {val['model']}</div>
+<div class="av-result-specs">{val['company']}  ·  {val['fuel']}  ·  {val['kms']:,} km</div>
+<div style="font-size:0.7rem;font-weight:600;color:{label_color};text-transform:uppercase;letter-spacing:0.05em;">Estimated resale value</div>
+<div class="av-result-price">{format_inr(t['fair_market'])}</div>
+<div class="av-result-caption">Indicative range: {format_inr(t['fair_range_low'])} – {format_inr(t['fair_range_high'])}</div>
+<div class="av-tiers">
+<div class="av-tier">
+<div class="av-tier-label">Trade-in estimate</div>
+<div class="av-tier-value">{format_inr(t['trade_in_low'])} – {format_inr(t['trade_in_high'])}</div>
+<div class="av-tier-sub">If selling to a dealer</div>
+</div>
+<div class="av-tier">
+<div class="av-tier-label">Private sale</div>
+<div class="av-tier-value">{format_inr(t['fair_market'])}</div>
+<div class="av-tier-sub">Direct buyer-to-seller</div>
+</div>
+<div class="av-tier">
+<div class="av-tier-label">Dealer retail</div>
+<div class="av-tier-value">{format_inr(t['retail_low'])} – {format_inr(t['retail_high'])}</div>
+<div class="av-tier-sub">Dealer showroom price</div>
+</div>
+</div>
+<div class="av-tags">
+<div class="av-tag">Est. fuel economy: <strong>{val['kmpl']} km/L</strong></div>
+<div class="av-tag">Est. fuel cost: <strong>₹{val['cost_km']}/km</strong></div>
+</div>
+</div>""", unsafe_allow_html=True)
 
-            st.markdown(f"""
-            <div class="prediction-box">
-                <span class="prediction-badge">✓ AI ESTIMATE VERIFIED</span>
-                <div style="color: #cbd5e1; font-size: 1.1rem; margin-top: 10px; font-weight: 600;">
-                    {curr_data['model']} ({curr_data['year']})
-                </div>
-                <div class="prediction-val">{format_inr(pred_val)}</div>
-                <div class="price-range">
-                    Estimated Fair Range: <strong>{format_inr(lower_bound)}</strong> — <strong>{format_inr(upper_bound)}</strong>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div class="av-note">
+This is a statistical estimate based on a linear regression model trained on the
+Quikr used-car dataset. It is not a guaranteed price, formal appraisal, or inspection
+report. Actual sale prices depend on vehicle condition, location, demand, and other
+factors not captured by this model.
+</div>""", unsafe_allow_html=True)
 
-            # Key valuation insight cards
-            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-            col_m1, col_m2 = st.columns(2)
-            with col_m1:
-                val_color = "#10b981" if is_dark else "#059669"
-                st.markdown(f"""
-                <div class="metric-card">
-                    <div style="color: {title_color}; font-size: 0.88rem; font-weight: 600;">ARAI Fuel Mileage</div>
-                    <div style="font-size: 1.45rem; font-weight: 800; color: {val_color}; margin-top: 6px;">
-                        {curr_data['kmpl']} km/L
-                    </div>
-                    <div style="color: {sub_color}; font-size: 0.82rem; margin-top: 6px;">Certified fuel efficiency</div>
-                </div>
-                """, unsafe_allow_html=True)
+    # ── EMI calculator ───────────────────────────────────────────────────
+    if st.session_state.get("valuation"):
+        val = st.session_state["valuation"]
+        pred_val = val["price"]
 
-            with col_m2:
-                retention = max(20, min(95, 100 - (current_year - curr_data['year']) * 7))
-                ret_color = "#38bdf8" if is_dark else "#2563eb"
-                st.markdown(f"""
-                <div class="metric-card">
-                    <div style="color: {title_color}; font-size: 0.88rem; font-weight: 600;">Est. Value Retention</div>
-                    <div style="font-size: 1.45rem; font-weight: 800; color: {ret_color}; margin-top: 6px;">
-                        {retention}% of Original
-                    </div>
-                    <div style="color: {sub_color}; font-size: 0.82rem; margin-top: 6px;">Relative to initial invoice</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-    # Full-Width Financing & Monthly EMI Estimator Section
-    if curr_data:
-        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-        with st.expander("💳 Auto-Loan Financing & Monthly EMI Estimator", expanded=True):
-            st.markdown(f"**Plan monthly installments & financing for {curr_data['model']} ({curr_data['year']}) — Market Value: {format_inr(curr_data['price'])}**")
-            
-            emi_col1, emi_col2, emi_col3 = st.columns([1.2, 0.9, 0.9])
-            with emi_col1:
-                down_payment = st.slider(
-                    "Down Payment (₹)",
-                    min_value=0,
-                    max_value=int(pred_val),
-                    value=int(pred_val * 0.2),
-                    step=10000,
-                    help="Upfront cash payment deducted from total price"
-                )
-                loan_principal = max(0, pred_val - down_payment)
-            
-            with emi_col2:
-                loan_tenure = st.selectbox(
-                    "Tenure Duration",
-                    [1, 2, 3, 4, 5, 7],
-                    index=2,
-                    format_func=lambda x: f"{x} Years ({x*12} Months)"
-                )
-            
-            with emi_col3:
-                loan_rate = st.slider(
-                    "Interest Rate (%)",
-                    min_value=6.0,
-                    max_value=16.0,
-                    value=8.5,
-                    step=0.25,
-                    help="Annual bank loan interest rate"
-                )
-            
-            monthly_emi, total_interest = calculate_emi(loan_principal, loan_rate, loan_tenure)
-            total_repayment = loan_principal + total_interest
-
-            # Custom responsive cards without any truncation
-            st.markdown(f"""
-            <div class="emi-grid">
-                <div class="emi-stat-card" style="border-top: 3px solid #38bdf8;">
-                    <div class="emi-stat-label">Net Loan Principal</div>
-                    <div class="emi-stat-val" style="color: #38bdf8;">{format_inr(loan_principal)}</div>
-                    <div class="emi-stat-sub">After {format_inr(down_payment)} down payment</div>
-                </div>
-                <div class="emi-stat-card" style="border-top: 3px solid #10b981;">
-                    <div class="emi-stat-label">Estimated Monthly EMI</div>
-                    <div class="emi-stat-val" style="color: #10b981;">{format_inr(monthly_emi)} <span style="font-size: 0.85rem; font-weight: 500; color: #94a3b8;">/ month</span></div>
-                    <div class="emi-stat-sub">Across {loan_tenure * 12} monthly installments</div>
-                </div>
-                <div class="emi-stat-card" style="border-top: 3px solid #fbbf24;">
-                    <div class="emi-stat-label">Total Interest Payable</div>
-                    <div class="emi-stat-val" style="color: #fbbf24;">{format_inr(total_interest)}</div>
-                    <div class="emi-stat-sub">Total Outflow: {format_inr(total_repayment)}</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-# ==============================================================================
-# TAB 2: EXPLORATORY DATA ANALYSIS (EDA) & MARKET INSIGHTS
-# ==============================================================================
-with tab_eda:
-    st.subheader("📊 Market Analytics & Data Discoveries")
-    st.write("Visual exploratory data analysis derived directly from the Quikr dataset.")
-
-    # High-level KPIs
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-    with kpi1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div style="color: {title_color}; font-size: 0.85rem;">Average Selling Price</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #2563eb; margin-top: 6px;">
-                {format_inr(df['Price'].mean())}
-            </div>
-            <div style="color: #059669; font-size: 0.8rem; margin-top: 4px;">Median: {format_inr(df['Price'].median())}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with kpi2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div style="color: {title_color}; font-size: 0.85rem;">Average Total Run (Odometer)</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #7c3aed; margin-top: 6px;">
-                {int(df['kms_driven'].mean()):,} km
-            </div>
-            <div style="color: {sub_color}; font-size: 0.8rem; margin-top: 4px;">Lifetime Distance Driven</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with kpi3:
-        avg_kmpl = df['fuel_efficiency_kmpl'].mean()
-        st.markdown(f"""
-        <div class="metric-card">
-            <div style="color: {title_color}; font-size: 0.85rem;">Fleet Avg Fuel Mileage</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #059669; margin-top: 6px;">
-                {avg_kmpl:.1f} km/L
-            </div>
-            <div style="color: {sub_color}; font-size: 0.8rem; margin-top: 4px;">Range: 10.5 - 26.0 km/L</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with kpi4:
-        top_brand = df['company'].value_counts().idxmax()
-        top_brand_count = df['company'].value_counts().max()
-        st.markdown(f"""
-        <div class="metric-card">
-            <div style="color: {title_color}; font-size: 0.85rem;">Leading Manufacturer</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #d97706; margin-top: 6px;">
-                {top_brand}
-            </div>
-            <div style="color: {sub_color}; font-size: 0.8rem; margin-top: 4px;">{top_brand_count} listings ({round(top_brand_count/len(df)*100, 1)}%)</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-
-    # Interactive Charts
-    row1_c1, row1_c2 = st.columns(2)
-    with row1_c1:
-        st.plotly_chart(create_brand_price_chart(df, template=chart_template), use_container_width=True)
-    with row1_c2:
-        st.plotly_chart(create_depreciation_chart(df, template=chart_template), use_container_width=True)
-
-    row2_c1, row2_c2 = st.columns(2)
-    with row2_c1:
-        st.plotly_chart(create_kms_vs_price_chart(df, template=chart_template), use_container_width=True)
-    with row2_c2:
-        st.plotly_chart(create_fuel_distribution_chart(df, template=chart_template), use_container_width=True)
-
-# ==============================================================================
-# TAB 3: SIDE-BY-SIDE VEHICLE COMPARISON
-# ==============================================================================
-with tab_compare:
-    st.subheader("⚖️ Side-by-Side Car Valuation Comparison")
-    st.write("Compare the predicted valuation and attributes of two vehicles to decide the better value proposition.")
-
-    comp_col1, comp_col2 = st.columns(2, gap="large")
-
-    with comp_col1:
-        st.markdown("### 🚘 Vehicle A")
-        c1_company = st.selectbox("Brand A", companies, index=companies.index("Hyundai") if "Hyundai" in companies else 0, key="c1_comp")
-        c1_models = sorted(df[df['company'] == c1_company]['name'].unique().tolist())
-        c1_model = st.selectbox("Model A", c1_models, key="c1_mod")
-        c1_year = st.slider("Manufacturing Year A", int(df['year'].min()), int(df['year'].max()), 2016, key="c1_yr")
-        c1_kms = st.number_input("Odometer Total Run A (km)", min_value=100, max_value=300000, value=35000, step=5000, key="c1_km")
-        c1_fuel = st.selectbox("Fuel Variant A", df['fuel_type'].unique(), key="c1_fl")
-
-        price_a = predict_price(model, c1_company, c1_model, c1_year, c1_kms, c1_fuel)
-        kmpl_a = estimate_fuel_economy_kmpl(c1_model, c1_company, c1_fuel)
-        st.markdown(f"""
-        <div class="metric-card" style="border-color: rgba(56, 189, 248, 0.4); text-align: center; margin-top: 15px;">
-            <div style="color: {title_color};">Valuation Estimate for Vehicle A</div>
-            <div style="font-size: 2.2rem; font-weight: 800; color: #0284c7; margin: 8px 0;">{format_inr(price_a)}</div>
-            <div style="color: {sub_color}; font-size: 0.9rem;">{c1_model} ({c1_year}) • ⛽ {kmpl_a} km/L</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with comp_col2:
-        st.markdown("### 🚙 Vehicle B")
-        c2_company = st.selectbox("Brand B", companies, index=companies.index("Honda") if "Honda" in companies else 1, key="c2_comp")
-        c2_models = sorted(df[df['company'] == c2_company]['name'].unique().tolist())
-        c2_model = st.selectbox("Model B", c2_models, key="c2_mod")
-        c2_year = st.slider("Manufacturing Year B", int(df['year'].min()), int(df['year'].max()), 2018, key="c2_yr")
-        c2_kms = st.number_input("Odometer Total Run B (km)", min_value=100, max_value=300000, value=48000, step=5000, key="c2_km")
-        c2_fuel = st.selectbox("Fuel Variant B", df['fuel_type'].unique(), key="c2_fl")
-
-        price_b = predict_price(model, c2_company, c2_model, c2_year, c2_kms, c2_fuel)
-        kmpl_b = estimate_fuel_economy_kmpl(c2_model, c2_company, c2_fuel)
-        st.markdown(f"""
-        <div class="metric-card" style="border-color: rgba(168, 85, 247, 0.4); text-align: center; margin-top: 15px;">
-            <div style="color: {title_color};">Valuation Estimate for Vehicle B</div>
-            <div style="font-size: 2.2rem; font-weight: 800; color: #7c3aed; margin: 8px 0;">{format_inr(price_b)}</div>
-            <div style="color: {sub_color}; font-size: 0.9rem;">{c2_model} ({c2_year}) • ⛽ {kmpl_b} km/L</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.divider()
-    # Comparison Summary Matrix
-    diff = abs(price_a - price_b)
-    cheaper = "Vehicle A" if price_a < price_b else "Vehicle B"
-    expensive = "Vehicle B" if price_a < price_b else "Vehicle A"
-    
-    st.markdown(f"""
-    <div class="feature-card" style="text-align: center; font-size: 1.1rem;">
-        ⚡ <strong>Price Difference:</strong> <span style="color: #059669; font-weight: 700;">{format_inr(diff)}</span>
-        <br>
-        <span style="color: {sub_color}; font-size: 0.95rem;">{cheaper} is more economical than {expensive} by <strong>{format_inr(diff)}</strong>.</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ==============================================================================
-# TAB 4: INVENTORY EXPLORER
-# ==============================================================================
-with tab_explorer:
-    st.subheader("🔍 Quikr Dataset Catalog Explorer")
-    
-    # Clarification Alert Box
-    st.markdown("""
-    <div class="clarification-box">
-        💡 <strong>Understanding the Difference Between "Odometer Run" and "Fuel Mileage":</strong><br>
-        • <strong>Total Odometer Run (km):</strong> Cumulative distance the used vehicle has driven on the road over its entire lifespan (e.g. 42,000 km, 100,000+ km).<br>
-        • <strong>Fuel Efficiency / Mileage (km/L):</strong> How far the car travels per 1 litre of fuel as certified by ARAI (typically 12 km/L to 26 km/L).
-    </div>
-    """, unsafe_allow_html=True)
-
-    col_flt1, col_flt2, col_flt3 = st.columns(3)
-    with col_flt1:
-        brand_filter = st.multiselect("Filter by Brand(s)", companies, default=[])
-    with col_flt2:
-        fuel_filter = st.multiselect("Filter by Fuel", df['fuel_type'].unique().tolist(), default=[])
-    with col_flt3:
-        max_p = int(df['Price'].max())
-        price_range = st.slider("Budget Filter (₹)", 0, max_p, (0, max_p), step=50000)
-
-    filtered_df = df.copy()
-    if brand_filter:
-        filtered_df = filtered_df[filtered_df['company'].isin(brand_filter)]
-    if fuel_filter:
-        filtered_df = filtered_df[filtered_df['fuel_type'].isin(fuel_filter)]
-    filtered_df = filtered_df[(filtered_df['Price'] >= price_range[0]) & (filtered_df['Price'] <= price_range[1])]
-
-    st.write(f"Showing **{len(filtered_df)}** matching vehicles:")
-    
-    # Prettify display table with unambiguous columns
-    display_df = filtered_df.copy()
-    display_df['Price (₹)'] = display_df['Price'].apply(format_inr)
-    display_df['Odometer Run'] = display_df['kms_driven'].apply(lambda x: f"{x:,} km")
-    display_df['ARAI Fuel Mileage'] = display_df['fuel_efficiency_kmpl'].apply(lambda x: f"{x} km/L")
-    display_df = display_df[['name', 'company', 'year', 'fuel_type', 'Odometer Run', 'ARAI Fuel Mileage', 'Price (₹)']]
-    display_df.columns = ['Car Model', 'Brand', 'Year', 'Fuel Variant', 'Total Distance Run (Odometer)', 'Fuel Mileage (Efficiency)', 'Selling Price']
-
-    st.dataframe(display_df, use_container_width=True, height=450)
-
-    # Download CSV capability
-    csv_bytes = filtered_df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Filtered Data as CSV",
-        data=csv_bytes,
-        file_name="Quikr_Car_Verified.csv",
-        mime="text/csv",
-        type="secondary"
-    )
-
-# ==============================================================================
-# TAB 5: PIPELINE & TECH SPECS
-# ==============================================================================
-with tab_specs:
-    st.subheader("🧠 Machine Learning Pipeline Architecture")
-    st.write("Technical blueprint of data engineering, feature transformations, and model evaluation.")
-
-    col_spec1, col_spec2 = st.columns(2)
-
-    with col_spec1:
-        st.markdown("""
-        ### 🔄 Data Cleaning Steps (from `Quikr_Analysis.ipynb`)
-        1. **Year Normalization:**
-           - Extracted numeric values, eliminated corrupted strings, cast to `int32`.
-        2. **Price Parsing & Outlier Capping:**
-           - Filtered out `"Ask For Price"`.
-           - Removed commas and formatted to numeric.
-           - Removed extreme luxury outlier listings (> ₹6,000,000).
-        3. **Kilometers Driven Cleaning:**
-           - Stripped `" kms"` suffix and commas.
-           - Filtered out non-numeric entries and converted to `int32`.
-        4. **Categorical Simplification:**
-           - Car models sliced to first 3 tokens (e.g. *"Maruti Suzuki Swift Dzire VDi"* → *"Maruti Suzuki Swift"*).
-           - Dropped records with null fuel entries.
-        """)
-
-    with col_spec2:
-        st.markdown("""
-        ### ⚙️ Scikit-Learn Pipeline Composition
-        ```python
-        from sklearn.compose import make_column_transformer
-        from sklearn.preprocessing import OneHotEncoder
-        from sklearn.linear_model import LinearRegression
-        from sklearn.pipeline import make_pipeline
-
-        # Categorical Encoding
-        column_trans = make_column_transformer(
-            (OneHotEncoder(categories=ohe.categories_), 
-             ['name', 'company', 'fuel_type']),
-            remainder='passthrough'
+        st.markdown("---")
+        st.markdown("### Financing estimate")
+        st.caption(
+            "Illustrative EMI calculation. Does not include insurance, "
+            "registration, processing fees, or other charges."
         )
 
-        # Regression Estimator
-        lr = LinearRegression()
-        pipe = make_pipeline(column_trans, lr)
-        pipe.fit(X_train, y_train)
-        ```
-        """)
+        fc1, fc2, fc3 = st.columns(3)
+        with fc1:
+            down_payment = st.slider(
+                "Down payment",
+                min_value=0,
+                max_value=int(pred_val),
+                value=int(pred_val * 0.20),
+                step=10000,
+                format="₹%d",
+                key="emi_down",
+            )
+        with fc2:
+            tenure = st.selectbox(
+                "Loan term",
+                [1, 2, 3, 4, 5, 7],
+                index=2,
+                format_func=lambda x: f"{x} {'year' if x == 1 else 'years'}",
+                key="emi_tenure",
+            )
+        with fc3:
+            rate = st.slider(
+                "Interest rate (% p.a.)",
+                min_value=6.0, max_value=16.0,
+                value=8.5, step=0.25,
+                key="emi_rate",
+            )
 
-    st.markdown("""
-    ### 📈 Model Evaluation Metrics
-    - **Regression Metric:** $R^2$ (Coefficient of Determination) = **0.8388 (83.88%)**
-    - **Optimized Split State:** Evaluated over 100 test train/test iterations to guarantee model stability and minimize variance.
-    - **Zero Data Leakage:** Categorical levels aligned using fitted `OneHotEncoder` categories.
+        principal = max(0, pred_val - down_payment)
+        emi, total_interest = calculate_emi(principal, rate, tenure)
+        total_repay = principal + total_interest
+
+        st.markdown(f"""
+        <div class="av-fin-grid">
+            <div class="av-fin-cell">
+                <div class="av-fin-label">Loan amount</div>
+                <div class="av-fin-value">{format_inr(principal)}</div>
+                <div class="av-fin-sub">After {format_inr(down_payment)} down</div>
+            </div>
+            <div class="av-fin-cell">
+                <div class="av-fin-label">Monthly EMI</div>
+                <div class="av-fin-value">{format_inr(emi)}</div>
+                <div class="av-fin-sub">{tenure * 12} payments</div>
+            </div>
+            <div class="av-fin-cell">
+                <div class="av-fin-label">Total interest</div>
+                <div class="av-fin-value">{format_inr(total_interest)}</div>
+                <div class="av-fin-sub">At {rate:.2f}% p.a.</div>
+            </div>
+            <div class="av-fin-cell">
+                <div class="av-fin-label">Total repayment</div>
+                <div class="av-fin-value">{format_inr(total_repay)}</div>
+                <div class="av-fin-sub">Principal + interest</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 2 — Market Insights
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_insights:
+    st.markdown("## Market insights")
+    st.markdown(
+        f"Summary statistics and charts derived from **{len(df):,} listings** "
+        f"across **{df['company'].nunique()} manufacturers** in the Quikr dataset."
+    )
+    st.markdown("---")
+
+    # KPI row
+    k1, k2, k3, k4 = st.columns(4)
+    with k1:
+        st.metric("Median price", format_inr(df["Price"].median()))
+    with k2:
+        st.metric("Mean price", format_inr(df["Price"].mean()))
+    with k3:
+        st.metric("Avg. kilometres", f"{int(df['kms_driven'].mean()):,} km")
+    with k4:
+        top_brand = df["company"].value_counts().idxmax()
+        top_share = round(df["company"].value_counts().max() / len(df) * 100, 1)
+        st.metric("Most listed brand", f"{top_brand} ({top_share}%)")
+
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+    # Charts — row 1
+    ch1, ch2 = st.columns(2)
+    with ch1:
+        st.caption("Average listing price by manufacturer.")
+        st.plotly_chart(
+            create_brand_price_chart(df, template=chart_template, is_dark=is_dark),
+            use_container_width=True,
+        )
+    with ch2:
+        st.caption("How listing prices vary across model years.")
+        st.plotly_chart(
+            create_depreciation_chart(df, template=chart_template, is_dark=is_dark),
+            use_container_width=True,
+        )
+
+    # Charts — row 2
+    ch3, ch4 = st.columns(2)
+    with ch3:
+        st.caption("Relationship between odometer reading and listed price.")
+        st.plotly_chart(
+            create_kms_vs_price_chart(df, template=chart_template, is_dark=is_dark),
+            use_container_width=True,
+        )
+    with ch4:
+        st.caption("Share of listings by fuel type.")
+        st.plotly_chart(
+            create_fuel_distribution_chart(df, template=chart_template, is_dark=is_dark),
+            use_container_width=True,
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 3 — Compare Cars
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_compare:
+    st.markdown("## Compare two cars")
+    st.markdown("Select two vehicles to compare their estimated values and running costs.")
+    st.markdown("---")
+
+    cmp1, cmp2 = st.columns(2, gap="large")
+
+    # ── Vehicle A ────────────────────────────────────────────────────────
+    with cmp1:
+        st.markdown('<div class="av-section-label">Vehicle A</div>', unsafe_allow_html=True)
+        a_company = st.selectbox(
+            "Manufacturer",
+            companies,
+            index=companies.index("Hyundai") if "Hyundai" in companies else 0,
+            key="cmp_a_co",
+        )
+        a_models = sorted(df[df["company"] == a_company]["name"].unique().tolist())
+        a_model = st.selectbox("Model", a_models, key="cmp_a_mod")
+        a_yr = st.slider("Model year", min_year, max_year, min(2016, max_year), key="cmp_a_yr")
+        a_kms = st.number_input("Kilometres driven", 100, 350000, 35000, step=5000, key="cmp_a_km")
+        a_fuel = st.selectbox("Fuel type", fuel_types, key="cmp_a_fl")
+
+        price_a = predict_price(model, a_company, a_model, a_yr, a_kms, a_fuel)
+        kmpl_a = estimate_fuel_economy_kmpl(a_model, a_company, a_fuel)
+        cost_a, _ = estimate_running_cost(a_fuel, kmpl_a)
+
+        st.markdown(f"""
+        <div class="av-compare-result">
+            <div class="av-compare-price">{format_inr(price_a)}</div>
+            <div class="av-compare-detail">
+                {a_model} ({a_yr}) · Est. {kmpl_a} km/L · ₹{cost_a}/km
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Vehicle B ────────────────────────────────────────────────────────
+    with cmp2:
+        st.markdown('<div class="av-section-label">Vehicle B</div>', unsafe_allow_html=True)
+        b_company = st.selectbox(
+            "Manufacturer",
+            companies,
+            index=companies.index("Honda") if "Honda" in companies else min(1, len(companies) - 1),
+            key="cmp_b_co",
+        )
+        b_models = sorted(df[df["company"] == b_company]["name"].unique().tolist())
+        b_model = st.selectbox("Model", b_models, key="cmp_b_mod")
+        b_yr = st.slider("Model year", min_year, max_year, min(2018, max_year), key="cmp_b_yr")
+        b_kms = st.number_input("Kilometres driven", 100, 350000, 48000, step=5000, key="cmp_b_km")
+        b_fuel = st.selectbox("Fuel type", fuel_types, key="cmp_b_fl")
+
+        price_b = predict_price(model, b_company, b_model, b_yr, b_kms, b_fuel)
+        kmpl_b = estimate_fuel_economy_kmpl(b_model, b_company, b_fuel)
+        cost_b, _ = estimate_running_cost(b_fuel, kmpl_b)
+
+        st.markdown(f"""
+        <div class="av-compare-result">
+            <div class="av-compare-price">{format_inr(price_b)}</div>
+            <div class="av-compare-detail">
+                {b_model} ({b_yr}) · Est. {kmpl_b} km/L · ₹{cost_b}/km
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Comparison table ─────────────────────────────────────────────────
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    comparison_data = {
+        "": ["Estimated price", "Model year", "Kilometres driven", "Fuel type",
+             "Est. fuel economy", "Est. fuel cost"],
+        f"{a_model}": [
+            format_inr(price_a), str(a_yr), f"{a_kms:,} km", a_fuel,
+            f"{kmpl_a} km/L", f"₹{cost_a}/km",
+        ],
+        f"{b_model}": [
+            format_inr(price_b), str(b_yr), f"{b_kms:,} km", b_fuel,
+            f"{kmpl_b} km/L", f"₹{cost_b}/km",
+        ],
+    }
+    st.dataframe(
+        pd.DataFrame(comparison_data).set_index(""),
+        use_container_width=True,
+    )
+
+    # Summary
+    price_diff = abs(price_a - price_b)
+    cheaper = "Vehicle A" if price_a < price_b else "Vehicle B"
+    more_eff = "Vehicle A" if kmpl_a > kmpl_b else "Vehicle B"
+    kmpl_diff = abs(kmpl_a - kmpl_b)
+
+    st.markdown(f"""
+    <div class="av-compare-summary">
+        <strong>{cheaper}</strong> is estimated at {format_inr(price_diff)} less.
+        <strong>{more_eff}</strong> has a higher estimated fuel economy by {kmpl_diff:.1f} km/L.
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 4 — Inventory
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_inventory:
+    st.markdown("## Vehicle inventory")
+    st.markdown(
+        f"Browse and filter **{len(df):,} listings** from the dataset. "
+        "Prices are listed amounts, not verified sale prices."
+    )
+    st.markdown("---")
+
+    # Filters
+    fi1, fi2, fi3 = st.columns(3)
+    with fi1:
+        search_text = st.text_input(
+            "Search by model or manufacturer",
+            key="inv_search",
+            placeholder="e.g. Swift, Hyundai…",
+        )
+    with fi2:
+        brand_filter = st.multiselect("Manufacturer", companies, default=[], key="inv_brand")
+    with fi3:
+        fuel_filter = st.multiselect("Fuel type", fuel_types, default=[], key="inv_fuel")
+
+    max_price = int(df["Price"].max())
+    price_range = st.slider(
+        "Price range",
+        min_value=0,
+        max_value=max_price,
+        value=(0, max_price),
+        step=50000,
+        format="₹%d",
+        key="inv_price",
+    )
+
+    # Apply filters
+    filtered = df.copy()
+    if search_text:
+        q = search_text.lower()
+        filtered = filtered[
+            filtered["name"].str.lower().str.contains(q, na=False)
+            | filtered["company"].str.lower().str.contains(q, na=False)
+        ]
+    if brand_filter:
+        filtered = filtered[filtered["company"].isin(brand_filter)]
+    if fuel_filter:
+        filtered = filtered[filtered["fuel_type"].isin(fuel_filter)]
+    filtered = filtered[
+        (filtered["Price"] >= price_range[0]) & (filtered["Price"] <= price_range[1])
+    ]
+
+    st.caption(f"{len(filtered):,} listings match your filters")
+
+    # Display table
+    display = filtered.copy()
+    display["Price (₹)"] = display["Price"].apply(format_inr)
+    display["Kilometres"] = display["kms_driven"].apply(lambda x: f"{int(x):,} km")
+    display["Est. km/L"] = display["fuel_efficiency_kmpl"].apply(lambda x: f"{x} km/L")
+    display = display[["name", "company", "year", "fuel_type", "Kilometres", "Est. km/L", "Price (₹)"]]
+    display.columns = ["Model", "Manufacturer", "Year", "Fuel", "Kilometres", "Est. km/L", "Price"]
+
+    st.dataframe(display, use_container_width=True, height=440)
+
+    csv_bytes = filtered.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="Download filtered data (CSV)",
+        data=csv_bytes,
+        file_name="autovaluate_listings.csv",
+        mime="text/csv",
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 5 — Methodology
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_method:
+    st.markdown("## Methodology")
+    st.markdown(
+        "How the prediction model works, its limitations, and what the "
+        "numbers mean."
+    )
+    st.markdown("---")
+
+    st.markdown("### Dataset")
+    st.markdown(f"""
+    The model is trained on a cleaned version of the **Quikr used car listings
+    dataset**, containing **{len(df):,} records** across
+    **{df['company'].nunique()} manufacturers**.
+
+    Each record includes the car model name, manufacturer, model year,
+    odometer reading (km), fuel type, and listed price (₹).
+
+    This is a historical dataset of listing prices, not verified transaction
+    prices. Listings may not reflect actual sale amounts.
     """)
+
+    st.markdown("### Data cleaning")
+    st.markdown("""
+    - Removed listings with non-numeric or missing prices (e.g. "Ask For Price").
+    - Stripped units from odometer values and converted to integers.
+    - Trimmed extreme outliers (prices above ₹60,00,000) to stabilise
+      regression.
+    - Normalised car model names to their primary tokens to reduce
+      high-cardinality sparsity.
+    """)
+
+    st.markdown("### Model")
+    st.markdown("""
+    The prediction pipeline uses **scikit-learn** with the following
+    components:
+
+    1. **OneHotEncoder** on categorical columns (`name`, `company`,
+       `fuel_type`).
+    2. **Linear Regression** as the estimator.
+    3. Numeric features (`year`, `kms_driven`) are passed through unchanged.
+    """)
+
+    st.code("""
+from sklearn.compose import make_column_transformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+
+column_trans = make_column_transformer(
+    (OneHotEncoder(categories=ohe.categories_),
+     ['name', 'company', 'fuel_type']),
+    remainder='passthrough'
+)
+
+pipe = make_pipeline(column_trans, LinearRegression())
+pipe.fit(X_train, y_train)
+    """, language="python")
+
+    st.markdown("### Evaluation")
+    st.markdown("""
+    - **R² score on test data: 0.84** (as reported during training).
+    - R² measures how well the model fits the evaluation data. An R² of 0.84
+      means the model explains roughly 84% of the variance in the test set's
+      prices.
+    - **This does not mean any individual prediction is 84% accurate.**
+      Predictions for rare models, extreme odometer readings, or unusual
+      market conditions may be significantly less accurate.
+    - A minimum price floor of ₹25,000 is applied to prevent negative or
+      unrealistically low predictions from linear extrapolation.
+    """)
+
+    st.markdown("### Fuel economy estimates")
+    st.markdown("""
+    The fuel economy figures shown in this application are **rough estimates**
+    based on publicly available specification ranges for common Indian car
+    segments (hatchbacks, sedans, SUVs, etc.).
+
+    They are **not** certified ARAI test results for any specific vehicle.
+    Actual fuel economy varies with driving conditions, maintenance, vehicle
+    age, and individual driving habits.
+
+    Running cost estimates use approximate metro fuel prices:
+    Petrol ₹96/L, Diesel ₹88/L, LPG ₹58/kg.
+    """)
+
+    st.markdown("### Valuation tiers")
+    st.markdown("""
+    The trade-in and dealer retail figures shown alongside the main estimate
+    are derived by applying fixed multipliers to the predicted price:
+
+    | Tier | Multiplier range |
+    |------|-----------------|
+    | Trade-in estimate | 88–94% of predicted price |
+    | Private sale (fair market) | 100% (the prediction itself) |
+    | Dealer retail estimate | 106–115% of predicted price |
+
+    These are rough approximations of typical pricing tiers, not independent
+    market valuations or verified quotes.
+    """)
+
+    st.markdown("### Limitations")
+    st.markdown("""
+    - The model does not account for vehicle condition, accident history,
+      service records, location-specific demand, or current market trends.
+    - The training data is a historical snapshot from one platform (Quikr)
+      and may not represent the broader Indian used car market.
+    - Linear regression assumes a linear relationship between features and
+      price, which may not hold for all vehicle segments.
+    - Predictions for manufacturers or models with very few training examples
+      are likely less reliable.
+    - The fuel economy estimates are category-level approximations, not
+      vehicle-specific measurements.
+    """)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Footer
+# ═══════════════════════════════════════════════════════════════════════════════
+st.markdown("""
+<div class="av-footer">
+    <strong>AutoValuate</strong> · Used car valuation and market analysis<br>
+    Predictions are statistical estimates based on the Quikr dataset.
+    Not a certified appraisal, inspection report, or guaranteed price.<br>
+    Model: Linear Regression · Dataset: ~816 cleaned Quikr listings
+</div>
+""", unsafe_allow_html=True)
