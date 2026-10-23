@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches and environments
+.env
+venv/
+env/
+.venv/
+.pytest_cache/
+
+# Streamlit local credentials
+.streamlit/secrets.toml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Large uncompressed temporary raw dumps (optional)
+data.csv.zip
+data.csv/
+
+# Other unrelated project files
+Project_3_Diabetes_Prediction.ipynb
